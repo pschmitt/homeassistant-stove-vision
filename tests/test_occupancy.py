@@ -1,4 +1,4 @@
-"""Occupancy tests on real frames (crops of a Miele hob, 1080p camera)."""
+"""Occupancy tests on real frames (crops of a Miele stove, 1080p camera)."""
 
 from __future__ import annotations
 
@@ -10,9 +10,9 @@ from PIL import Image
 import pytest
 
 _MODULE = (
-    Path(__file__).parents[1] / "custom_components" / "hob_vision" / "occupancy.py"
+    Path(__file__).parents[1] / "custom_components" / "stove_vision" / "occupancy.py"
 )
-_spec = importlib.util.spec_from_file_location("hob_vision_occupancy", _MODULE)
+_spec = importlib.util.spec_from_file_location("stove_vision_occupancy", _MODULE)
 occupancy = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = occupancy
 _spec.loader.exec_module(occupancy)
@@ -38,9 +38,9 @@ def _read(name: str) -> dict[str, occupancy.OccupancyReading]:
 @pytest.mark.parametrize(
     ("fixture", "expected"),
     [
-        ("hob_empty.png", [False, False, False, False]),
-        ("hob_empty_glare.png", [False, False, False, False]),
-        ("hob_pot_rear_right.png", [False, True, False, False]),
+        ("stove_empty.png", [False, False, False, False]),
+        ("stove_empty_glare.png", [False, False, False, False]),
+        ("stove_pot_rear_right.png", [False, True, False, False]),
     ],
 )
 def test_occupancy(fixture: str, expected: list[bool]) -> None:
@@ -49,12 +49,12 @@ def test_occupancy(fixture: str, expected: list[bool]) -> None:
 
 
 def test_pot_is_bright() -> None:
-    assert _read("hob_pot_rear_right.png")["rear_right"].bright
+    assert _read("stove_pot_rear_right.png")["rear_right"].bright
 
 
 def test_shadow_is_not_occupied() -> None:
-    """A person at the hob shadows the front ring: unsure, not occupied."""
-    reading = _read("hob_shadow_front_right.png")["front_right"]
+    """A person at the stove shadows the front ring: unsure, not occupied."""
+    reading = _read("stove_shadow_front_right.png")["front_right"]
     assert reading.occupied is not True
 
 
@@ -88,7 +88,7 @@ def test_tracker_unsure_keeps_state() -> None:
     assert tracker.update(_r(None)) is True
 
 
-def test_annotate_hob_returns_jpeg() -> None:
-    img = Image.open(FIXTURES / "hob_empty.png").convert("RGB")
-    data = occupancy.annotate_hob(img, AREAS, GLASS, {a.key: False for a in AREAS})
+def test_annotate_stove_returns_jpeg() -> None:
+    img = Image.open(FIXTURES / "stove_empty.png").convert("RGB")
+    data = occupancy.annotate_stove(img, AREAS, GLASS, {a.key: False for a in AREAS})
     assert data[:2] == b"\xff\xd8"

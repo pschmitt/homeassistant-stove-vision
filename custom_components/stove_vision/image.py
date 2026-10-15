@@ -1,4 +1,4 @@
-"""Annotated crops of the panel and the hob, to calibrate the positions."""
+"""Annotated crops of the panel and the stove, to calibrate the positions."""
 
 from __future__ import annotations
 
@@ -10,58 +10,58 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import HobVisionConfigEntry
-from .coordinator import HobVisionCoordinator
-from .entity import HobVisionEntity
+from . import StoveVisionConfigEntry
+from .coordinator import StoveVisionCoordinator
+from .entity import StoveVisionEntity
 
 
 @dataclass(frozen=True, kw_only=True)
-class HobImageDescription(ImageEntityDescription):
+class StoveImageDescription(ImageEntityDescription):
     """Which annotated crop."""
 
-    image_fn: Callable[[HobVisionCoordinator], bytes | None]
+    image_fn: Callable[[StoveVisionCoordinator], bytes | None]
 
 
 DESCRIPTIONS = (
     # Control panel: digit windows and readings
-    HobImageDescription(
+    StoveImageDescription(
         key="panel",
         translation_key="panel",
         entity_category=EntityCategory.DIAGNOSTIC,
         image_fn=lambda coordinator: coordinator.panel_image,
     ),
-    # Whole hob: zone rings, glass reference and occupancy
-    HobImageDescription(
+    # Whole stove: zone rings, glass reference and occupancy
+    StoveImageDescription(
         key="zones",
         translation_key="zones",
         entity_category=EntityCategory.DIAGNOSTIC,
-        image_fn=lambda coordinator: coordinator.hob_image,
+        image_fn=lambda coordinator: coordinator.stove_image,
     ),
 )
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: HobVisionConfigEntry,
+    entry: StoveVisionConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Add the annotated images."""
     async_add_entities(
-        HobImage(entry.runtime_data, description) for description in DESCRIPTIONS
+        StoveImage(entry.runtime_data, description) for description in DESCRIPTIONS
     )
 
 
-class HobImage(HobVisionEntity, ImageEntity):
+class StoveImage(StoveVisionEntity, ImageEntity):
     """The latest annotated crop."""
 
     _attr_content_type = "image/jpeg"
-    entity_description: HobImageDescription
+    entity_description: StoveImageDescription
 
     def __init__(
-        self, coordinator: HobVisionCoordinator, description: HobImageDescription
+        self, coordinator: StoveVisionCoordinator, description: StoveImageDescription
     ) -> None:
         """Set up the image entity."""
-        HobVisionEntity.__init__(self, coordinator, description.key)
+        StoveVisionEntity.__init__(self, coordinator, description.key)
         ImageEntity.__init__(self, coordinator.hass)
         self.entity_description = description
         self._attr_image_last_updated = coordinator.image_time

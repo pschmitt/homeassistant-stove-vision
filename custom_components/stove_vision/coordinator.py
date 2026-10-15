@@ -1,4 +1,4 @@
-"""Polls camera frames and reads the hob displays."""
+"""Polls camera frames and reads the stove displays."""
 
 from __future__ import annotations
 
@@ -52,12 +52,12 @@ from .occupancy import (
     OccupancyTracker,
     Ring,
     ZoneArea,
-    annotate_hob,
+    annotate_stove,
     read_occupancy,
 )
 
 if TYPE_CHECKING:
-    from . import HobVisionConfigEntry
+    from . import StoveVisionConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -157,7 +157,7 @@ class ZoneOccupancy:
 
 
 @dataclass(slots=True)
-class HobData:
+class StoveData:
     """Result of one poll."""
 
     zones: dict[str, ZoneState]
@@ -165,12 +165,12 @@ class HobData:
     frame_time: datetime
 
 
-class HobVisionCoordinator(DataUpdateCoordinator[HobData]):
+class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
     """Grabs a frame every few seconds and reads the zone displays."""
 
-    config_entry: HobVisionConfigEntry
+    config_entry: StoveVisionConfigEntry
 
-    def __init__(self, hass: HomeAssistant, entry: HobVisionConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: StoveVisionConfigEntry) -> None:
         """Set up the coordinator from the entry's data and options."""
         self.config: dict[str, Any] = {**entry.data, **entry.options}
         super().__init__(
@@ -196,7 +196,7 @@ class HobVisionCoordinator(DataUpdateCoordinator[HobData]):
         self._trackers = {area.key: OccupancyTracker() for area in self.areas}
         self._failures = 0
         self.panel_image: bytes | None = None
-        self.hob_image: bytes | None = None
+        self.stove_image: bytes | None = None
         self.image_time: datetime | None = None
 
     def _decode(
@@ -214,10 +214,10 @@ class HobVisionCoordinator(DataUpdateCoordinator[HobData]):
             readings,
             occupancy,
             annotate(img, self.zones, readings, self.settings),
-            annotate_hob(img, self.areas, self.glass_box, states),
+            annotate_stove(img, self.areas, self.glass_box, states),
         )
 
-    async def _async_update_data(self) -> HobData:
+    async def _async_update_data(self) -> StoveData:
         try:
             async with asyncio.timeout(FETCH_TIMEOUT + 10):
                 frame = await async_fetch_frame(self.hass, self.config)
@@ -225,7 +225,7 @@ class HobVisionCoordinator(DataUpdateCoordinator[HobData]):
                     readings,
                     occupancy,
                     panel,
-                    hob,
+                    stove,
                 ) = await self.hass.async_add_executor_job(self._decode, frame)
         except (
             ClientError,
@@ -244,7 +244,7 @@ class HobVisionCoordinator(DataUpdateCoordinator[HobData]):
         self._failures = 0
 
         now = dt_util.utcnow()
-        self.panel_image, self.hob_image, self.image_time = panel, hob, now
+        self.panel_image, self.stove_image, self.image_time = panel, stove, now
         zones = {}
         for key, reading in readings.items():
             history = self._history[key]
@@ -254,4 +254,4 @@ class HobVisionCoordinator(DataUpdateCoordinator[HobData]):
             key: ZoneOccupancy(self._trackers[key].state, reading)
             for key, reading in occupancy.items()
         }
-        return HobData(zones, occupied, now)
+        return StoveData(zones, occupied, now)

@@ -1,6 +1,6 @@
-"""The Hob Vision integration.
+"""The Stove Vision integration.
 
-Reads the zone displays of a hob (power level, residual heat) from a camera
+Reads the zone displays of a stove (power level, residual heat) from a camera
 pointed at it.
 """
 
@@ -10,14 +10,14 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, PLATFORMS
-from .coordinator import HobVisionCoordinator
+from .coordinator import StoveVisionCoordinator
 
-type HobVisionConfigEntry = ConfigEntry[HobVisionCoordinator]
+type StoveVisionConfigEntry = ConfigEntry[StoveVisionCoordinator]
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: HobVisionConfigEntry) -> bool:
-    """Set up Hob Vision from a config entry."""
-    coordinator = HobVisionCoordinator(hass, entry)
+async def async_setup_entry(hass: HomeAssistant, entry: StoveVisionConfigEntry) -> bool:
+    """Set up Stove Vision from a config entry."""
+    coordinator = StoveVisionCoordinator(hass, entry)
     entry.runtime_data = coordinator
 
     # Never block startup on the camera: forward the platforms first and grab
@@ -30,13 +30,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: HobVisionConfigEntry) ->
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: HobVisionConfigEntry) -> bool:
+async def async_unload_entry(
+    hass: HomeAssistant, entry: StoveVisionConfigEntry
+) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
 async def _async_reload_on_update(
-    hass: HomeAssistant, entry: HobVisionConfigEntry
+    hass: HomeAssistant, entry: StoveVisionConfigEntry
 ) -> None:
     """Reload when the options change."""
     await hass.config_entries.async_reload(entry.entry_id)

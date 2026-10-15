@@ -1,4 +1,4 @@
-"""Whole-hob binary sensors."""
+"""Whole-stove binary sensors."""
 
 from __future__ import annotations
 
@@ -14,28 +14,28 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import HobVisionConfigEntry
+from . import StoveVisionConfigEntry
 from .const import ZONES
-from .coordinator import HobVisionCoordinator, ZoneState
+from .coordinator import StoveVisionCoordinator, ZoneState
 from .decoder import STATE_RESIDUAL_HEAT
-from .entity import HobVisionEntity
+from .entity import StoveVisionEntity
 
 
 @dataclass(frozen=True, kw_only=True)
-class HobBinarySensorDescription(BinarySensorEntityDescription):
+class StoveBinarySensorDescription(BinarySensorEntityDescription):
     """Which zones count."""
 
     zone_fn: Callable[[ZoneState], bool]
 
 
 DESCRIPTIONS = (
-    HobBinarySensorDescription(
+    StoveBinarySensorDescription(
         key="on",
         translation_key="on",
         device_class=BinarySensorDeviceClass.POWER,
         zone_fn=lambda zone: zone.is_on,
     ),
-    HobBinarySensorDescription(
+    StoveBinarySensorDescription(
         key="hot",
         translation_key="hot",
         device_class=BinarySensorDeviceClass.HEAT,
@@ -46,15 +46,15 @@ DESCRIPTIONS = (
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: HobVisionConfigEntry,
+    entry: StoveVisionConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Add the hob binary sensors and one occupancy sensor per zone."""
+    """Add the stove binary sensors and one occupancy sensor per zone."""
     coordinator = entry.runtime_data
     async_add_entities(
         [
             *(
-                HobBinarySensor(coordinator, description)
+                StoveBinarySensor(coordinator, description)
                 for description in DESCRIPTIONS
             ),
             *(ZoneOccupancySensor(coordinator, zone) for zone in ZONES),
@@ -62,13 +62,15 @@ async def async_setup_entry(
     )
 
 
-class HobBinarySensor(HobVisionEntity, BinarySensorEntity):
+class StoveBinarySensor(StoveVisionEntity, BinarySensorEntity):
     """True when any zone matches."""
 
-    entity_description: HobBinarySensorDescription
+    entity_description: StoveBinarySensorDescription
 
     def __init__(
-        self, coordinator: HobVisionCoordinator, description: HobBinarySensorDescription
+        self,
+        coordinator: StoveVisionCoordinator,
+        description: StoveBinarySensorDescription,
     ) -> None:
         """Set up the binary sensor."""
         super().__init__(coordinator, description.key)
@@ -96,12 +98,12 @@ class HobBinarySensor(HobVisionEntity, BinarySensorEntity):
         return {"zones": self._matching()}
 
 
-class ZoneOccupancySensor(HobVisionEntity, BinarySensorEntity):
+class ZoneOccupancySensor(StoveVisionEntity, BinarySensorEntity):
     """Something (a pot, a pan) sits on the zone."""
 
     _attr_device_class = BinarySensorDeviceClass.OCCUPANCY
 
-    def __init__(self, coordinator: HobVisionCoordinator, zone: str) -> None:
+    def __init__(self, coordinator: StoveVisionCoordinator, zone: str) -> None:
         """Set up the sensor."""
         super().__init__(coordinator, f"{zone}_occupied")
         self._zone = zone

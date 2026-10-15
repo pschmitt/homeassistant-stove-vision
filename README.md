@@ -1,11 +1,11 @@
-# Hob Vision
+# Stove Vision
 
-Home Assistant integration that reads the zone displays of a hob (power
+Home Assistant integration that reads the zone displays of a stove (power
 level, residual heat) and whether something sits on each zone from a camera
-pointed at it. No smart hob, no cloud:
+pointed at it. No smart stove, no cloud:
 it polls a frame every few seconds and decodes the seven-segment digits.
 
-Calibrated on a Miele ceramic hob with red displays seen from above by a
+Calibrated on a Miele ceramic cooktop with red displays seen from above by a
 1080p camera, but nothing in it is Miele-specific except the residual heat
 pattern (stacked horizontal bars).
 
@@ -18,11 +18,11 @@ pattern (stacked horizontal bars).
 | `binary_sensor.<name>_hot` | Any zone is heating or shows residual heat |
 | `image.<name>_panel` | The panel as last seen, with the zone windows and readings drawn in (diagnostic, for calibration) |
 | `binary_sensor.<name>_rear_left_occupied` (and the other zones) | Something (a pot, a pan) sits on the zone. Attributes: `ring_visibility`, `brightness`, the raw verdict of the latest frame |
-| `image.<name>_zones` | The hob with the zone rings (orange: occupied, blue: free, grey: unsure) and the bare glass reference (yellow) |
+| `image.<name>_zones` | The stove with the zone rings (orange: occupied, blue: free, grey: unsure) and the bare glass reference (yellow) |
 
 ## Setup
 
-1. Point a camera at the hob so the control panel is readable. Use the full
+1. Point a camera at the stove so the control panel is readable. Use the full
    resolution stream: a digit is only about 7x12 pixels at 1080p. Camera
    entities usually only hand out a reduced snapshot; a go2rtc
    `api/frame.jpeg?src=<stream>` URL gives a full frame.
@@ -55,7 +55,7 @@ hides it. And the inside of the zone is compared to a patch of bare glass
 between the zones: a metal pot, a pan rim or a hand is much brighter.
 
 The ring only shows by reflecting room light, so a person standing at the
-hob can shadow the front rings for a minute. Hence:
+stove can shadow the front rings for a minute. Hence:
 
 - something bright on the zone, or the ring clearly visible again, switches
   the sensor after 2 frames,
@@ -75,4 +75,4 @@ dual zone) by looking at the *Zones* image.
 python -m pytest tests
 ```
 
-The fixtures are crops of the control panel and the hob glass only.
+The fixtures are crops of the control panel and the stove glass only.

@@ -1,10 +1,10 @@
-"""Constants for Hob Vision."""
+"""Constants for Stove Vision."""
 
 from __future__ import annotations
 
 from homeassistant.const import Platform
 
-DOMAIN = "hob_vision"
+DOMAIN = "stove_vision"
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.IMAGE, Platform.SENSOR]
 
 CONF_SNAPSHOT_URL = "snapshot_url"
@@ -19,7 +19,7 @@ CONF_ZONE_PREFIX = "zone_"
 CONF_RINGS_PREFIX = "rings_"
 CONF_GLASS_BOX = "glass_box"
 
-DEFAULT_NAME = "Hob"
+DEFAULT_NAME = "Stove"
 DEFAULT_SNAPSHOT_URL = (
     "http://ccab4aaf-frigate:1984/api/frame.jpeg?src=magicam_main_rtsp"
 )

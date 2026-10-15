@@ -1,6 +1,6 @@
 {
-  "domain": "hob_vision",
-  "name": "Hob Vision",
+  "domain": "stove_vision",
+  "name": "Stove Vision",
   "after_dependencies": [
     "camera"
   ],
@@ -11,12 +11,12 @@
   "dependencies": [
     "image"
   ],
-  "documentation": "https://github.com/pschmitt/homeassistant-hob-vision",
+  "documentation": "https://github.com/pschmitt/homeassistant-stove-vision",
   "integration_type": "device",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/pschmitt/homeassistant-hob-vision/issues",
+  "issue_tracker": "https://github.com/pschmitt/homeassistant-stove-vision/issues",
   "loggers": [
-    "custom_components.hob_vision"
+    "custom_components.stove_vision"
   ],
   "version": "0.1.0"
 }

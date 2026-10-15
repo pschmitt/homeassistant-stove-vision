@@ -1,4 +1,4 @@
-"""Read the seven-segment zone displays of a hob from a camera frame.
+"""Read the seven-segment zone displays of a stove from a camera frame.
 
 Pure Pillow, no Home Assistant imports, so it can be tested on saved frames.
 

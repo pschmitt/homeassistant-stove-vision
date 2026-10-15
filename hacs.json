@@ -1,7 +1,7 @@
 {
-  "name": "Hob Vision",
+  "name": "Stove Vision",
   "domains": [
-    "hob_vision"
+    "stove_vision"
   ],
   "homeassistant": "2025.1.0",
   "render_readme": true

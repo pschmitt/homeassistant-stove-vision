@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "Hob Vision",
-        "description": "Read the hob's zone displays from a camera pointed at it. Calibrate the zone positions in the options afterwards.",
+        "title": "Stove Vision",
+        "description": "Read the stove's zone displays from a camera pointed at it. Calibrate the zone positions in the options afterwards.",
         "data": {
           "name": "Name",
           "snapshot_url": "Snapshot URL",
@@ -11,7 +11,7 @@
           "rotation": "Rotation (degrees, clockwise)"
         },
         "data_description": {
-          "snapshot_url": "URL returning a JPEG of the hob at full resolution, e.g. a go2rtc frame.jpeg endpoint",
+          "snapshot_url": "URL returning a JPEG of the stove at full resolution, e.g. a go2rtc frame.jpeg endpoint",
           "camera_entity": "Alternative to the URL: a camera entity (often only a reduced-resolution snapshot)",
           "rotation": "Turn the frame so the control panel is upright"
         }
@@ -28,7 +28,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Hob Vision",
+        "title": "Stove Vision",
         "description": "Positions are pixels in the rotated frame. Zone positions are the centre (x,y) of each zone's digit, see the Panel image. Rings are the printed circles around each zone, see the Zones image.",
         "data": {
           "snapshot_url": "Snapshot URL",
@@ -47,7 +47,7 @@
           "glass_box": "Bare glass reference"
         },
         "data_description": {
-          "snapshot_url": "URL returning a JPEG of the hob at full resolution, e.g. a go2rtc frame.jpeg endpoint",
+          "snapshot_url": "URL returning a JPEG of the stove at full resolution, e.g. a go2rtc frame.jpeg endpoint",
           "camera_entity": "Alternative to the URL: a camera entity (often only a reduced-resolution snapshot)",
           "rotation": "Turn the frame so the control panel is upright",
           "smoothing": "Majority vote over this many frames; hides display flicker and brief obstructions",

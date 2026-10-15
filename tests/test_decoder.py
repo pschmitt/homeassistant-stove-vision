@@ -1,4 +1,4 @@
-"""Decoder tests on real frames (panel crops of a Miele hob, 1080p camera)."""
+"""Decoder tests on real frames (panel crops of a Miele stove, 1080p camera)."""
 
 from __future__ import annotations
 
@@ -9,8 +9,10 @@ from pathlib import Path
 
 import pytest
 
-_DECODER = Path(__file__).parents[1] / "custom_components" / "hob_vision" / "decoder.py"
-_spec = importlib.util.spec_from_file_location("hob_vision_decoder", _DECODER)
+_DECODER = (
+    Path(__file__).parents[1] / "custom_components" / "stove_vision" / "decoder.py"
+)
+_spec = importlib.util.spec_from_file_location("stove_vision_decoder", _DECODER)
 decoder = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = decoder
 _spec.loader.exec_module(decoder)

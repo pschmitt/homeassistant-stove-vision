@@ -6,7 +6,7 @@ Two cues per zone:
 
 - the printed ring(s) around the zone: visible on bare glass, hidden under a
   pot. The ring only shows by reflecting room light, so a person standing at
-  the hob can shadow it for a while; that is why a hidden ring alone is only
+  the stove can shadow it for a while; that is why a hidden ring alone is only
   trusted after several frames (see OccupancyTracker).
 - the inside of the zone compared to a patch of bare glass: a pot, a pan rim
   or a hand is much brighter than the dark glass.
@@ -42,7 +42,7 @@ class ZoneArea:
 
 @dataclass(frozen=True, slots=True)
 class OccupancySettings:
-    """Tuning knobs. The defaults fit a 1080p frame of a Miele ceramic hob."""
+    """Tuning knobs. The defaults fit a 1080p frame of a Miele ceramic stove."""
 
     samples: int = 120
     # A ring point is visible when it is this much brighter than the glass
@@ -148,7 +148,7 @@ class OccupancyTracker:
 
     Clear evidence (something bright on the zone, or the ring visible again)
     switches after a couple of frames; a hidden ring on its own needs more,
-    as a person at the hob shadows the rings for a while.
+    as a person at the stove shadows the rings for a while.
     """
 
     def __init__(self, fast: int = 2, slow: int = 6) -> None:
@@ -182,14 +182,14 @@ class OccupancyTracker:
         return self.state
 
 
-def annotate_hob(
+def annotate_stove(
     img: Image.Image,
     areas: Sequence[ZoneArea],
     glass_box: tuple[int, int, int, int],
     states: dict[str, bool | None],
     margin: int = 30,
 ) -> bytes:
-    """JPEG of the hob with the rings, the glass reference and the states.
+    """JPEG of the stove with the rings, the glass reference and the states.
 
     Used to calibrate the ring positions.
     """
@@ -200,8 +200,8 @@ def annotate_hob(
     bottom = min(
         img.height, max(max(r.cy + r.ry for r in rings), glass_box[3]) + margin
     )
-    hob = img.crop((left, top, right, bottom)).convert("RGB")
-    draw = ImageDraw.Draw(hob)
+    stove = img.crop((left, top, right, bottom)).convert("RGB")
+    draw = ImageDraw.Draw(stove)
     colours = {True: (255, 80, 0), False: (0, 200, 255), None: (160, 160, 160)}
     for area in areas:
         colour = colours[states.get(area.key)]
@@ -226,5 +226,5 @@ def annotate_hob(
     x0, y0, x1, y1 = glass_box
     draw.rectangle((x0 - left, y0 - top, x1 - left, y1 - top), outline=(255, 255, 0))
     out = BytesIO()
-    hob.save(out, format="JPEG", quality=80)
+    stove.save(out, format="JPEG", quality=80)
     return out.getvalue()

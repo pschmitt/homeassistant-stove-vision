@@ -1,4 +1,4 @@
-"""Config flow for Hob Vision."""
+"""Config flow for Stove Vision."""
 
 from __future__ import annotations
 
@@ -149,8 +149,8 @@ def _normalize(user_input: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
-class HobVisionConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Set up a hob display reader."""
+class StoveVisionConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Set up a stove display reader."""
 
     VERSION = 1
 
@@ -178,10 +178,10 @@ class HobVisionConfigFlow(ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry) -> OptionsFlow:
         """Options: source, rotation, polling and zone positions."""
-        return HobVisionOptionsFlow()
+        return StoveVisionOptionsFlow()
 
 
-class HobVisionOptionsFlow(OptionsFlow):
+class StoveVisionOptionsFlow(OptionsFlow):
     """Change the source and calibrate the zone positions."""
 
     async def async_step_init(

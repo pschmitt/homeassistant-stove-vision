@@ -8,11 +8,11 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import HobVisionConfigEntry
+from . import StoveVisionConfigEntry
 from .const import LEVELS, STATE_BOOST, ZONES
-from .coordinator import HobVisionCoordinator
+from .coordinator import StoveVisionCoordinator
 from .decoder import STATE_OBSTRUCTED, STATE_OFF, STATE_RESIDUAL_HEAT, STATE_UNKNOWN
-from .entity import HobVisionEntity
+from .entity import StoveVisionEntity
 
 OPTIONS = [
     STATE_OFF,
@@ -27,20 +27,20 @@ OPTIONS = [
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: HobVisionConfigEntry,
+    entry: StoveVisionConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Add one sensor per zone."""
     async_add_entities(ZoneSensor(entry.runtime_data, key) for key in ZONES)
 
 
-class ZoneSensor(HobVisionEntity, SensorEntity):
+class ZoneSensor(StoveVisionEntity, SensorEntity):
     """What a zone display shows."""
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = OPTIONS
 
-    def __init__(self, coordinator: HobVisionCoordinator, zone: str) -> None:
+    def __init__(self, coordinator: StoveVisionCoordinator, zone: str) -> None:
         """Set up the sensor."""
         super().__init__(coordinator, zone)
         self._zone = zone
