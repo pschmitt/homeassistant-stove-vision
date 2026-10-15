@@ -10,6 +10,9 @@
  *   show_header: true          # full: title, chips and camera button
  *   show_chips: true           # status chips (full) / zone pills (compact)
  *   show_panel: true           # full: control panel digits
+ *   hold_action:               # optional, like native cards: navigate,
+ *     action: navigate         # more-info (entity), url or none
+ *     navigation_path: /dashboard-debug/stove
  *   show_camera_button: true   # flip to (full) / unfold (compact) the
  *                              # annotated camera crops
  *
@@ -237,6 +240,7 @@ class StoveVisionCard extends HTMLElement {
     if (!this.shadowRoot) {
       this.attachShadow({ mode: "open" });
       this.shadowRoot.addEventListener("click", (event) => this._onClick(event));
+      this._listenForHold();
     }
     const zones = Object.entries(model.zones);
     const on = zones.filter(([, zone]) => zone.level > 0);
@@ -537,7 +541,64 @@ class StoveVisionCard extends HTMLElement {
       <g class="steamgroup">${steam}</g>`;
   }
 
+  // Long press (hold_action): fires after 500 ms, and swallows the click that
+  // follows the release
+  _listenForHold() {
+    const root = this.shadowRoot;
+    const cancel = () => clearTimeout(this._holdTimer);
+    root.addEventListener("pointerdown", (event) => {
+      if (!this._config.hold_action || event.button > 0) return;
+      this._held = false;
+      const start = [event.clientX, event.clientY];
+      this._holdStart = start;
+      cancel();
+      this._holdTimer = setTimeout(() => {
+        this._held = true;
+        this._runAction(this._config.hold_action);
+      }, 500);
+    });
+    root.addEventListener("pointermove", (event) => {
+      if (!this._holdStart) return;
+      const [x, y] = this._holdStart;
+      if (Math.abs(event.clientX - x) > 10 || Math.abs(event.clientY - y) > 10) cancel();
+    });
+    for (const type of ["pointerup", "pointercancel"]) {
+      root.addEventListener(type, () => {
+        cancel();
+        this._holdStart = undefined;
+      });
+    }
+    // No context menu on a long press (touch)
+    root.addEventListener("contextmenu", (event) => {
+      if (this._config.hold_action) event.preventDefault();
+    });
+  }
+
+  _runAction(action) {
+    if (!action || action.action === "none") return;
+    if (action.action === "navigate" && action.navigation_path) {
+      if (action.navigation_replace) {
+        history.replaceState(null, "", action.navigation_path);
+      } else {
+        history.pushState(null, "", action.navigation_path);
+      }
+      window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+    } else if (action.action === "url" && action.url_path) {
+      window.open(action.url_path);
+    } else if (action.action === "more-info" && action.entity) {
+      const moreInfo = new Event("hass-more-info", { bubbles: true, composed: true });
+      moreInfo.detail = { entityId: action.entity };
+      this.dispatchEvent(moreInfo);
+    }
+  }
+
   _onClick(event) {
+    if (this._held) {
+      // The release after a long press
+      this._held = false;
+      event.stopPropagation();
+      return;
+    }
     const camera = event.target.closest("[data-action]");
     if (camera && camera.dataset.action === "camera") {
       this._showCamera = !this._showCamera;
