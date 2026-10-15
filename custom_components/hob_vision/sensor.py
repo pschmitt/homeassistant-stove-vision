@@ -16,6 +16,7 @@ from .entity import HobVisionEntity
 
 OPTIONS = [
     STATE_OFF,
+    "0",
     *LEVELS,
     STATE_BOOST,
     STATE_RESIDUAL_HEAT,

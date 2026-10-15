@@ -50,6 +50,13 @@ def test_residual_heat() -> None:
     assert [readings[z.key].heat_bars for z in ZONES] == [2, 2, 3, 3]
 
 
+def test_residual_heat_dim() -> None:
+    """Paler display (kitchen lights on), single bars."""
+    readings = _read("residual_heat_dim_2_1_1_1.png")
+    assert [readings[z.key].state for z in ZONES] == ["residual_heat"] * 4
+    assert [readings[z.key].heat_bars for z in ZONES] == [2, 1, 1, 1]
+
+
 def test_rotation_roundtrip() -> None:
     img = decoder.load_frame((FIXTURES / "levels_1_2_3_4.png").read_bytes())
     flipped = img.rotate(180)

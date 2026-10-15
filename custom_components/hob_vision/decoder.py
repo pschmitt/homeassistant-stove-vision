@@ -78,6 +78,8 @@ class DecoderSettings:
     half_w: int = 9
     half_h: int = 11
     min_lit: int = 4
+    tint: int = 25
+    weak_tint: int = 15
     slant: float = 0.25
     threshold: float = 0.5
     min_score: float = 0.7
@@ -95,12 +97,12 @@ class ZoneReading:
     heat_bars: int | None = None
 
 
-def is_tinted(r: int, g: int, b: int) -> bool:
+def is_tinted(r: int, g: int, b: int, tint: int = 25) -> bool:
     """Edge of a lit segment: bright with a magenta tint.
 
     White glare has r ~= g ~= b; orange pot handles and food have low blue.
     """
-    return r > 130 and b > 110 and r - g > 25 and b - g > 20
+    return r > 130 and b > 110 and r - g > tint and b - g > tint - 5
 
 
 def is_bright(r: int, g: int, b: int) -> bool:
@@ -153,18 +155,24 @@ def read_zone(
     )
     w, h = crop.size
     px = crop.load()
-    tinted = [[False] * w for _ in range(h)]
-    glow = [[False] * w for _ in range(h)]
-    lit = bright = 0
-    for y in range(h):
-        for x in range(w):
-            r, g, b = px[x, y][:3]
-            if is_tinted(r, g, b):
-                tinted[y][x] = True
-                lit += 1
-            elif is_bright(r, g, b):
-                glow[y][x] = True
-                bright += 1
+    # Strict tint first. A dim display (a single residual heat bar, or the
+    # camera exposing for a brighter kitchen) comes out paler: retry with a
+    # weaker tint, but only then, as it also picks up more bloom.
+    for tint in (s.tint, s.weak_tint):
+        tinted = [[False] * w for _ in range(h)]
+        glow = [[False] * w for _ in range(h)]
+        lit = bright = 0
+        for y in range(h):
+            for x in range(w):
+                r, g, b = px[x, y][:3]
+                if is_tinted(r, g, b, tint):
+                    tinted[y][x] = True
+                    lit += 1
+                elif is_bright(r, g, b):
+                    glow[y][x] = True
+                    bright += 1
+        if lit >= s.min_lit:
+            break
 
     if lit < s.min_lit:
         # Dark display. If the window is mostly bright, something (a pot, a
