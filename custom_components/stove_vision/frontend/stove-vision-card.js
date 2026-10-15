@@ -5,7 +5,8 @@
  *   type: custom:stove-vision-card
  *   device: <device id>        # optional, first Stove Vision device otherwise
  *   title: Kochfeld            # optional, device name otherwise
- *   variant: full              # full | compact (one row, for popups)
+ *   variant: full              # full | compact (one row, for popups) |
+ *                              # tile (looks like a native/mushroom tile)
  *   show_header: true          # full: title, chips and camera button
  *   show_chips: true           # status chips (full) / zone pills (compact)
  *   show_panel: true           # full: control panel digits
@@ -95,6 +96,7 @@ class StoveVisionCard extends HTMLElement {
               options: [
                 { value: "full", label: "Full: the whole stove" },
                 { value: "compact", label: "Compact: one row, for popups" },
+                { value: "tile", label: "Tile: native look, half width" },
               ],
             },
           },
@@ -123,7 +125,7 @@ class StoveVisionCard extends HTMLElement {
       show_camera_button: true,
       ...config,
     };
-    if (!["full", "compact"].includes(this._config.variant)) {
+    if (!["full", "compact", "tile"].includes(this._config.variant)) {
       throw new Error(`Unknown variant: ${this._config.variant}`);
     }
     this._showCamera = false;
@@ -135,16 +137,22 @@ class StoveVisionCard extends HTMLElement {
     return this._config.variant === "compact";
   }
 
+  get _tile() {
+    return this._config.variant === "tile";
+  }
+
   set hass(hass) {
     this._hass = hass;
     this._render();
   }
 
   getCardSize() {
+    if (this._tile) return 1;
     return this._compact ? 2 : 7;
   }
 
   getGridOptions() {
+    if (this._tile) return { columns: 6, min_columns: 4, rows: "auto" };
     return this._compact
       ? { columns: 12, min_columns: 6, rows: "auto", min_rows: 2 }
       : { columns: 12, min_columns: 6, rows: "auto" };
@@ -170,7 +178,7 @@ class StoveVisionCard extends HTMLElement {
         occupied: find(`${zone}_occupied`),
       };
     }
-    for (const key of ["on", "hot", "infrared"]) {
+    for (const key of ["on", "hot", "danger", "infrared"]) {
       result[key] = find(key);
     }
     // Annotated camera crops (the "zones" image is not the zone map above)
@@ -199,6 +207,7 @@ class StoveVisionCard extends HTMLElement {
       };
     }
     const infrared = this._state(ids.infrared);
+    const danger = this._state(ids.danger);
     const device = ids.device && this._hass.devices ? this._hass.devices[ids.device] : undefined;
     const images = {};
     for (const key of ["panel", "zones"]) {
@@ -210,6 +219,7 @@ class StoveVisionCard extends HTMLElement {
       zones,
       images,
       infrared: infrared ? infrared.state === "on" : false,
+      danger: danger ? danger.state === "on" : false,
       title:
         this._config.title ||
         (device && (device.name_by_user || device.name)) ||
@@ -244,6 +254,10 @@ class StoveVisionCard extends HTMLElement {
 
     if (this._compact) {
       this._renderCompact(model, { on, hot, pots, known });
+      return;
+    }
+    if (this._tile) {
+      this._renderTile(model, { on, hot, pots, known });
       return;
     }
 
@@ -321,6 +335,51 @@ class StoveVisionCard extends HTMLElement {
             ${this._config.show_chips && pills ? `<div class="pills">${pills}</div>` : ""}
           </div>
           ${cameraButton}
+        </div>
+        ${camera}
+      </ha-card>`;
+  }
+
+  _renderTile(model, { on, hot, pots, known }) {
+    const short = { rear_left: "RL", rear_right: "RR", front_left: "FL", front_right: "FR" };
+    let secondary;
+    let tone = "off";
+    if (model.infrared) [secondary, tone] = ["Night vision, can't see", "ir"];
+    else if (!known) secondary = "No reading";
+    else if (on.length) {
+      secondary = on.map(([key, zone]) => `${short[key]} ${zone.level}`).join(" · ");
+      tone = model.danger ? "danger" : "on";
+    } else if (hot.length) [secondary, tone] = ["Off, still hot", "hot"];
+    else secondary = "Off";
+    if (pots.length && !model.infrared) secondary += ` · ${pots.length} pot${pots.length > 1 ? "s" : ""}`;
+
+    // The badge: a tiny stove with the zones' state, instead of a static icon
+    const glyph = Object.entries(TILE_ZONES)
+      .map(([key, [x, y, r]]) => {
+        const zone = model.zones[key];
+        const cls =
+          zone.level > 0 ? "z-on" : zone.state === "residual_heat" ? "z-hot" : "z-off";
+        const pot = zone.occupied === "on" ? `<circle cx="${x}" cy="${y}" r="${(r * 0.55).toFixed(1)}" class="z-pot"/>` : "";
+        return `<circle cx="${x}" cy="${y}" r="${r}" class="${cls}"/>${pot}`;
+      })
+      .join("");
+    const canCamera = model.images.zones && this._config.show_camera_button;
+    const camera =
+      this._showCamera && model.images.zones
+        ? `<div class="tile-camera"><img src="${model.images.zones}" alt="Zones"></div>`
+        : "";
+
+    this.shadowRoot.innerHTML = `
+      <style>${STYLE}</style>
+      <ha-card class="tile tone-${tone}">
+        <div class="tile-row" data-entity="${(model.danger ? model.ids.danger : model.ids.on) || ""}">
+          <div class="badge" ${canCamera ? `data-action="camera" title="Camera view"` : ""}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">${glyph}</svg>
+          </div>
+          <div class="tile-text">
+            <div class="primary">${model.title}</div>
+            <div class="secondary">${secondary}</div>
+          </div>
         </div>
         ${camera}
       </ha-card>`;
@@ -489,7 +548,7 @@ class StoveVisionCard extends HTMLElement {
       this._render();
       return;
     }
-    if (this._compact) {
+    if (this._compact || this._tile) {
       const target = event.target.closest("[data-entity]");
       if (target && target.dataset.entity) {
         const moreInfo = new Event("hass-more-info", { bubbles: true, composed: true });
@@ -505,6 +564,14 @@ class StoveVisionCard extends HTMLElement {
     this.dispatchEvent(moreInfo);
   }
 }
+
+// Zones of the tile badge glyph (24x24): x, y, radius
+const TILE_ZONES = {
+  rear_left: [7, 7.2, 3.6],
+  rear_right: [16.6, 7.6, 4.8],
+  front_left: [7.2, 16.6, 4.6],
+  front_right: [16.8, 16.9, 3.7],
+};
 
 const STYLE = `
   :host { display: block; }
@@ -578,6 +645,49 @@ const STYLE = `
   .row { display: flex; align-items: center; gap: 14px; cursor: pointer; }
   .row .info { flex: 1 1 auto; }
   .compact-camera { padding: 10px 0 2px; }
+  /* Tile: mimics mushroom/tile cards (and follows their theme variables) */
+  ha-card.tile {
+    --tone: var(--secondary-text-color, #9b9b9b);
+    padding: var(--spacing, 12px); box-sizing: border-box; height: 100%;
+  }
+  ha-card.tile.tone-on { --tone: var(--orange-color, #ff9800); }
+  ha-card.tile.tone-danger { --tone: var(--red-color, #f44336); }
+  ha-card.tile.tone-hot { --tone: var(--amber-color, #ffc107); }
+  ha-card.tile.tone-ir { --tone: var(--deep-purple-color, #6e41ab); }
+  .tile-row {
+    display: flex; align-items: center; gap: var(--spacing, 12px);
+    cursor: pointer; min-width: 0;
+  }
+  .badge {
+    flex: 0 0 auto; width: var(--icon-size, 40px); height: var(--icon-size, 40px);
+    border-radius: var(--icon-border-radius, 50%);
+    background: color-mix(in srgb, var(--tone) 20%, transparent);
+    color: var(--tone);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .badge svg { width: 62%; height: 62%; overflow: visible; }
+  .z-off { fill: none; stroke: currentColor; stroke-width: 1.5; opacity: 0.85; }
+  .z-on { fill: var(--red-color, #f44336); stroke: var(--red-color, #f44336); stroke-width: 1.5; }
+  .z-hot { fill: var(--amber-color, #ffc107); fill-opacity: 0.55; stroke: var(--amber-color, #ffc107); stroke-width: 1.5; }
+  .z-pot { fill: var(--primary-text-color, #e1e1e1); opacity: 0.9; }
+  .tile-text { min-width: 0; display: flex; flex-direction: column; }
+  .tile .primary {
+    font-weight: var(--card-primary-font-weight, bold);
+    font-size: var(--card-primary-font-size, 14px);
+    line-height: var(--card-primary-line-height, 20px);
+    color: var(--card-primary-color, var(--primary-text-color));
+    letter-spacing: var(--card-primary-letter-spacing, 0.1px);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tile .secondary {
+    font-weight: var(--card-secondary-font-weight, bolder);
+    font-size: var(--card-secondary-font-size, 12px);
+    line-height: var(--card-secondary-line-height, 16px);
+    color: var(--card-secondary-color, var(--secondary-text-color));
+    letter-spacing: var(--card-secondary-letter-spacing, 0.4px);
+  }
+  .tile-camera { padding-top: var(--spacing, 12px); }
+  .tile-camera img { width: 100%; border-radius: 10px; display: block; }
   .mini { flex: 0 0 auto; width: 92px; }
   .mini svg { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35)); }
   .info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }

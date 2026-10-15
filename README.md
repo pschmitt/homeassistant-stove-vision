@@ -51,7 +51,7 @@ type: custom:stove-vision-card
 |---|---|---|
 | `device` | first Stove Vision device | Which stove |
 | `title` | device name | |
-| `variant` | `full` | `full`: the whole stove. `compact`: one row (mini stove, status, zone pills), for popups and small spaces |
+| `variant` | `full` | `full`: the whole stove. `compact`: one row (mini stove, status, zone pills), for popups and small spaces. `tile`: looks like a native/mushroom tile (half width, a badge with the zones' state, levels and pots as secondary; tap the badge for the camera view) |
 | `show_header` | `true` | Full: title, chips and camera button |
 | `show_chips` | `true` | Status chips (full) / zone pills (compact) |
 | `show_panel` | `true` | Full: the control panel digits |
