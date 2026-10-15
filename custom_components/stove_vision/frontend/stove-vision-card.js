@@ -13,6 +13,7 @@
  *   hold_action:               # optional, like native cards: navigate,
  *     action: navigate         # more-info (entity), url or none
  *     navigation_path: /dashboard-debug/stove
+ *   show_refresh_button: true  # full/compact: read a frame now
  *   show_camera_button: true   # flip to (full) / unfold (compact) the
  *                              # annotated camera crops
  *
@@ -86,6 +87,7 @@ class StoveVisionCard extends HTMLElement {
       show_chips: "Status chips / zone pills",
       show_panel: "Control panel digits",
       show_camera_button: "Camera button",
+      show_refresh_button: "Refresh button",
     };
     return {
       schema: [
@@ -112,6 +114,7 @@ class StoveVisionCard extends HTMLElement {
             { name: "show_chips", selector: { boolean: {} } },
             { name: "show_panel", selector: { boolean: {} } },
             { name: "show_camera_button", selector: { boolean: {} } },
+            { name: "show_refresh_button", selector: { boolean: {} } },
           ],
         },
       ],
@@ -126,6 +129,7 @@ class StoveVisionCard extends HTMLElement {
       show_chips: true,
       show_panel: true,
       show_camera_button: true,
+      show_refresh_button: true,
       ...config,
     };
     if (!["full", "compact", "tile"].includes(this._config.variant)) {
@@ -181,7 +185,7 @@ class StoveVisionCard extends HTMLElement {
         occupied: find(`${zone}_occupied`),
       };
     }
-    for (const key of ["on", "hot", "danger", "infrared"]) {
+    for (const key of ["on", "hot", "danger", "infrared", "refresh"]) {
       result[key] = find(key);
     }
     // Annotated camera crops (the "zones" image is not the zone map above)
@@ -240,7 +244,7 @@ class StoveVisionCard extends HTMLElement {
   _render() {
     if (!this._hass || !this._config) return;
     const model = this._model();
-    const signature = JSON.stringify([model, this._showCamera, this._config]);
+    const signature = JSON.stringify([model, this._showCamera, this._config, this._refreshing]);
     if (signature === this._signature) return;
     this._signature = signature;
 
@@ -285,6 +289,7 @@ class StoveVisionCard extends HTMLElement {
       ? `<div class="header">
            <div class="title">${model.title}</div>
            <div class="chips">${this._config.show_chips ? chips.join("") : ""}</div>
+           ${this._refreshButton(model)}
            ${cameraButton}
          </div>`
       : "";
@@ -353,10 +358,32 @@ class StoveVisionCard extends HTMLElement {
             <div class="status ${tone}">${status}</div>
             ${this._config.show_chips && pills ? `<div class="pills">${pills}</div>` : ""}
           </div>
+          ${this._refreshButton(model)}
           ${cameraButton}
         </div>
         ${camera}
       </ha-card>`;
+  }
+
+  _refreshButton(model) {
+    if (!this._config.show_refresh_button || !model.ids.refresh) return "";
+    return `<button class="toggle refresh ${this._refreshing ? "spinning" : ""}" data-action="refresh"
+                    title="Read a frame now" ${this._refreshing ? "disabled" : ""}>↻</button>`;
+  }
+
+  async _refresh() {
+    const entityId = this._model().ids.refresh;
+    if (!entityId || this._refreshing) return;
+    this._refreshing = true;
+    this._render();
+    try {
+      // Returns once the frame has been fetched and decoded
+      await this._hass.callService("button", "press", { entity_id: entityId });
+    } finally {
+      this._refreshing = false;
+      this._signature = undefined;
+      this._render();
+    }
   }
 
   _renderTile(model, { on, hot, pots, known }) {
@@ -619,6 +646,12 @@ class StoveVisionCard extends HTMLElement {
   }
 
   _onClick(event) {
+    const refresh = event.target.closest("[data-action=refresh]");
+    if (refresh) {
+      event.stopPropagation();
+      this._refresh();
+      return;
+    }
     if (this._held) {
       // The release after a long press
       this._held = false;
@@ -677,6 +710,10 @@ const STYLE = `
   .chip.pot { background: rgba(120, 160, 200, 0.18); color: #8fb4dc; }
   .chip.danger { background: rgba(244, 67, 54, 0.22); color: #ff5252; font-weight: 600; }
   .chip.ir { background: rgba(120, 110, 220, 0.2); color: #a99cff; }
+  .toggle.refresh { font-size: 17px; line-height: 1; }
+  .toggle.refresh.spinning { animation: spin 0.9s linear infinite; cursor: default; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .row .toggle + .toggle { margin-left: -6px; }
   .toggle {
     border: none; background: var(--secondary-background-color); border-radius: 999px;
     width: 32px; height: 32px; cursor: pointer; font-size: 15px;

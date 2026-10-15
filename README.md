@@ -102,6 +102,7 @@ and "without pot" on the tile.
 | `show_chips` | `true` | Status chips (full) / zone pills (compact) |
 | `show_panel` | `true` | Full: the control panel digits |
 | `show_camera_button` | `true` | The annotated camera crops: flip to them (full), unfold them (compact), open them in their more-info dialog from the badge (tile) |
+| `show_refresh_button` | `true` | Full and compact: ↻ presses `button.<name>_refresh` to read a frame now (spins until it's decoded) |
 | `hold_action` | none | Long press, like native cards: `navigate` (`navigation_path`), `more-info` (`entity`), `url` (`url_path`), `none` |
 
 All options are in the card editor as well.
