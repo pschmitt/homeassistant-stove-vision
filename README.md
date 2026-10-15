@@ -5,9 +5,19 @@ level, residual heat) and whether something sits on each zone from a camera
 pointed at it. No smart stove, no cloud:
 it polls a frame every few seconds and decodes the seven-segment digits.
 
-Calibrated on a Miele ceramic cooktop with red displays seen from above by a
-1080p camera, but nothing in it is Miele-specific except the residual heat
-pattern (stacked horizontal bars).
+## Tested with
+
+- **Stove:** Miele KM 6203 (KM 6203 FL.BDG), a ceramic glass cooktop with
+  four radiant zones (two of them dual-ring) and red seven-segment zone
+  displays. It has no Miele@Home support (its Con@ctivity link only talks to
+  a Miele range hood), hence the camera.
+- **Camera:** Reolink camera behind a Reolink Home Hub, mounted above the
+  stove, read at 1920x1080 through Frigate's go2rtc
+  (`api/frame.jpeg?src=<stream>`), day/night mode pinned to colour.
+
+Nothing in it is Miele-specific except the residual heat pattern (stacked
+horizontal bars) and the default positions; other cooktops with
+seven-segment zone displays should work after calibrating the positions.
 
 ## Entities
 
@@ -101,3 +111,8 @@ python -m pytest tests
 ```
 
 The fixtures are crops of the control panel and the stove glass only.
+
+## License
+
+GPL-3.0, see [LICENSE](LICENSE). This includes the card
+(`custom_components/stove_vision/frontend/stove-vision-card.js`).

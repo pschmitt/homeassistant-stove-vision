@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 /*
  * Stove Vision card: the stove drawn from the integration's sensors.
  *
@@ -5,7 +6,8 @@
  *   device: <device id>        # optional, first Stove Vision device otherwise
  *   title: Kochfeld            # optional, device name otherwise
  *
- * Served by the stove_vision integration, no resource to add.
+ * Part of the stove_vision integration, which serves it and loads it in the
+ * frontend: no resource to add. GPL-3.0, see LICENSE.
  */
 
 const ZONES = {
