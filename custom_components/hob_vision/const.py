@@ -1,0 +1,41 @@
+"""Constants for Hob Vision."""
+
+from __future__ import annotations
+
+from homeassistant.const import Platform
+
+DOMAIN = "hob_vision"
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.IMAGE, Platform.SENSOR]
+
+CONF_SNAPSHOT_URL = "snapshot_url"
+CONF_CAMERA_ENTITY = "camera_entity"
+CONF_ROTATION = "rotation"
+CONF_SCAN_INTERVAL = "scan_interval"
+CONF_SMOOTHING = "smoothing"
+
+# Zone keys, in the order they appear on the panel
+ZONES = ("rear_left", "rear_right", "front_left", "front_right")
+CONF_ZONE_PREFIX = "zone_"
+
+DEFAULT_NAME = "Hob"
+DEFAULT_SNAPSHOT_URL = (
+    "http://ccab4aaf-frigate:1984/api/frame.jpeg?src=magicam_main_rtsp"
+)
+DEFAULT_ROTATION = 0
+DEFAULT_SCAN_INTERVAL = 10
+DEFAULT_SMOOTHING = 3
+# Digit centres in a 1080p frame of the Miele panel this was calibrated on
+DEFAULT_ZONE_POSITIONS = {
+    "rear_left": "957,575",
+    "rear_right": "1005,575",
+    "front_left": "939,600",
+    "front_right": "1022,600",
+}
+
+# A frame grab (go2rtc waits for a keyframe) or decode can fail now and then;
+# keep the last state for a few polls before going unavailable.
+MAX_CONSECUTIVE_FAILURES = 3
+FETCH_TIMEOUT = 20
+
+LEVELS = tuple(str(level) for level in range(1, 10))
+STATE_BOOST = "boost"

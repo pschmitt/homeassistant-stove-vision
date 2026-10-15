@@ -1,0 +1,8 @@
+{
+  "name": "Hob Vision",
+  "domains": [
+    "hob_vision"
+  ],
+  "homeassistant": "2025.1.0",
+  "render_readme": true
+}

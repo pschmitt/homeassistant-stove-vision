@@ -1,0 +1,149 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hob Vision",
+        "description": "Read the hob's zone displays from a camera pointed at it. Calibrate the zone positions in the options afterwards.",
+        "data": {
+          "name": "Name",
+          "snapshot_url": "Snapshot URL",
+          "camera_entity": "Camera",
+          "rotation": "Rotation (degrees, clockwise)"
+        },
+        "data_description": {
+          "snapshot_url": "URL returning a JPEG of the hob at full resolution, e.g. a go2rtc frame.jpeg endpoint",
+          "camera_entity": "Alternative to the URL: a camera entity (often only a reduced-resolution snapshot)",
+          "rotation": "Turn the frame so the control panel is upright"
+        }
+      }
+    },
+    "error": {
+      "no_source": "Set a snapshot URL or a camera.",
+      "cannot_fetch": "Could not fetch a frame from the source.",
+      "invalid_position": "Use x,y pixel coordinates, e.g. 957,575."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Hob Vision",
+        "description": "Zone positions are the pixel centre (x,y) of each zone's digit in the rotated frame. The Panel image shows the windows being read.",
+        "data": {
+          "snapshot_url": "Snapshot URL",
+          "camera_entity": "Camera",
+          "rotation": "Rotation (degrees, clockwise)",
+          "scan_interval": "Poll interval",
+          "smoothing": "Smoothing (frames)",
+          "zone_rear_left": "Rear left zone position",
+          "zone_rear_right": "Rear right zone position",
+          "zone_front_left": "Front left zone position",
+          "zone_front_right": "Front right zone position"
+        },
+        "data_description": {
+          "snapshot_url": "URL returning a JPEG of the hob at full resolution, e.g. a go2rtc frame.jpeg endpoint",
+          "camera_entity": "Alternative to the URL: a camera entity (often only a reduced-resolution snapshot)",
+          "rotation": "Turn the frame so the control panel is upright",
+          "smoothing": "Majority vote over this many frames; hides display flicker and brief obstructions"
+        }
+      }
+    },
+    "error": {
+      "no_source": "Set a snapshot URL or a camera.",
+      "cannot_fetch": "Could not fetch a frame from the source.",
+      "invalid_position": "Use x,y pixel coordinates, e.g. 957,575."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "rear_left": {
+        "name": "Rear left",
+        "state": {
+          "off": "Off",
+          "1": "1",
+          "2": "2",
+          "3": "3",
+          "4": "4",
+          "5": "5",
+          "6": "6",
+          "7": "7",
+          "8": "8",
+          "9": "9",
+          "boost": "Boost",
+          "residual_heat": "Residual heat",
+          "obstructed": "Obstructed",
+          "unknown": "Unknown"
+        }
+      },
+      "rear_right": {
+        "name": "Rear right",
+        "state": {
+          "off": "Off",
+          "1": "1",
+          "2": "2",
+          "3": "3",
+          "4": "4",
+          "5": "5",
+          "6": "6",
+          "7": "7",
+          "8": "8",
+          "9": "9",
+          "boost": "Boost",
+          "residual_heat": "Residual heat",
+          "obstructed": "Obstructed",
+          "unknown": "Unknown"
+        }
+      },
+      "front_left": {
+        "name": "Front left",
+        "state": {
+          "off": "Off",
+          "1": "1",
+          "2": "2",
+          "3": "3",
+          "4": "4",
+          "5": "5",
+          "6": "6",
+          "7": "7",
+          "8": "8",
+          "9": "9",
+          "boost": "Boost",
+          "residual_heat": "Residual heat",
+          "obstructed": "Obstructed",
+          "unknown": "Unknown"
+        }
+      },
+      "front_right": {
+        "name": "Front right",
+        "state": {
+          "off": "Off",
+          "1": "1",
+          "2": "2",
+          "3": "3",
+          "4": "4",
+          "5": "5",
+          "6": "6",
+          "7": "7",
+          "8": "8",
+          "9": "9",
+          "boost": "Boost",
+          "residual_heat": "Residual heat",
+          "obstructed": "Obstructed",
+          "unknown": "Unknown"
+        }
+      }
+    },
+    "binary_sensor": {
+      "on": {
+        "name": "On"
+      },
+      "hot": {
+        "name": "Hot"
+      }
+    },
+    "image": {
+      "panel": {
+        "name": "Panel"
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "domain": "hob_vision",
+  "name": "Hob Vision",
+  "after_dependencies": [
+    "camera"
+  ],
+  "codeowners": [
+    "@pschmitt"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "image"
+  ],
+  "documentation": "https://github.com/pschmitt/homeassistant-hob-vision",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/pschmitt/homeassistant-hob-vision/issues",
+  "loggers": [
+    "custom_components.hob_vision"
+  ],
+  "version": "0.1.0"
+}
