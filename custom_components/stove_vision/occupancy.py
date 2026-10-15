@@ -52,6 +52,9 @@ class OccupancySettings:
     line_gap: int = 4
     # Fraction of ring points visible
     hidden_below: float = 0.12
+    # A ring this hidden is covered, not shadowed (a person at the stove
+    # never took a ring below 0.17): switch as fast as for something bright
+    covered_below: float = 0.05
     # A hidden ring only counts when some other zone's ring is this visible in
     # the same frame, i.e. the light is good enough to see rings at all
     good_light: float = 0.85
@@ -70,6 +73,8 @@ class OccupancyReading:
     ring_visibility: float
     brightness: float
     bright: bool
+    # Clear evidence (bright, or the ring entirely gone): switch fast
+    certain: bool = False
 
 
 def _ring_visibility(
@@ -152,16 +157,20 @@ def read_occupancy(
             occupied = False
         else:
             occupied = None
-        readings[area.key] = OccupancyReading(occupied, visibility, brightness, bright)
+        certain = bright or (good_light and visibility < s.covered_below)
+        readings[area.key] = OccupancyReading(
+            occupied, visibility, brightness, bright, certain
+        )
     return readings
 
 
 class OccupancyTracker:
     """Debounce a zone's occupancy over frames.
 
-    Clear evidence (something bright on the zone, or the ring visible again)
-    switches after a couple of frames; a hidden ring on its own needs more,
-    as a person at the stove shadows the rings for a while.
+    Clear evidence (something bright on the zone, its ring entirely gone, or
+    the ring visible again) switches after a couple of frames; a partly hidden
+    ring on its own needs more, as a person at the stove shadows the rings
+    for a while.
     """
 
     def __init__(self, fast: int = 2, slow: int = 6) -> None:
@@ -190,7 +199,8 @@ class OccupancyTracker:
         if reading.occupied != self._pending:
             self._pending, self._count = reading.occupied, 0
         self._count += 1
-        needed = self.slow if reading.occupied and not reading.bright else self.fast
+        certain = reading.certain or reading.bright
+        needed = self.slow if reading.occupied and not certain else self.fast
         if self._count >= needed:
             self.state = reading.occupied
             self._pending, self._count = None, 0

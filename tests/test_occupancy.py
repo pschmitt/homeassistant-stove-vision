@@ -101,6 +101,22 @@ def test_tracker_hidden_ring_switches_slow() -> None:
     assert states == [False] * 5 + [True]
 
 
+def test_tracker_covered_ring_switches_fast() -> None:
+    tracker = occupancy.OccupancyTracker(fast=2, slow=6)
+    _settle(tracker, _r(False))
+    covered = occupancy.OccupancyReading(True, 0.0, 20.0, False, True)
+    assert tracker.update(covered) is False
+    assert tracker.update(covered) is True
+
+
+def test_dark_pan_ring_entirely_hidden_is_certain() -> None:
+    """A dark pan (barely brighter than glass) hiding the whole inner ring."""
+    reading = _read("stove_dark_pan_rear_right.png")["rear_right"]
+    assert reading.occupied is True
+    assert not reading.bright
+    assert reading.certain
+
+
 def test_tracker_unsure_keeps_state() -> None:
     tracker = occupancy.OccupancyTracker()
     _settle(tracker, _r(True, bright=True))

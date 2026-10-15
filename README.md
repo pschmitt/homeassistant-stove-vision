@@ -174,12 +174,12 @@ Two cues per zone:
 
 The ring only shows by reflecting room light. So:
 
-- something bright on the zone, or the ring clearly visible again, switches
-  the sensor after 2 frames,
-- a hidden ring alone (a dark pan) needs 6 frames, has to be almost entirely
-  gone (a person at the stove shadows the front rings, but only partly), and
-  only counts when another zone's ring is clearly visible in the same frame
-  (lights off or glare: no evidence),
+- something bright on the zone, a ring entirely gone (a dark pan; a person
+  at the stove only ever shadows part of a ring), or the ring clearly
+  visible again switches the sensor after 2 frames,
+- a ring that's mostly but not entirely hidden needs 6 frames,
+- a hidden ring only counts when another zone's ring is clearly visible in
+  the same frame (lights off or glare: no evidence),
 - anything in between keeps the previous state.
 
 A pot smaller than the ring doesn't hide it; it is then only found by being
@@ -203,8 +203,8 @@ python -m pytest tests
 
 The fixtures are crops of the control panel and the stove glass only, from
 real frames: levels, residual heat (tinted, dim, untinted, with a stray
-pixel), glare off the zone key symbols, empty and occupied zones, a shadow,
-a dark kitchen.
+pixel), glare off the zone key symbols, empty zones, a steel pot, a dark
+pan, a shadow, a dark kitchen.
 
 ## License
 
