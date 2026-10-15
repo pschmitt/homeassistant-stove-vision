@@ -57,7 +57,7 @@ class OccupancySettings:
     good_light: float = 0.85
     visible_above: float = 0.5
     # Inside of the zone vs the bare glass reference (0-255 brightness)
-    bright_delta: float = 45.0
+    bright_delta: float = 65.0
     interior_scale: float = 0.92
     interior_step: int = 3
 
@@ -124,7 +124,9 @@ def read_occupancy(
 ) -> dict[str, OccupancyReading]:
     """Evidence per zone from one frame."""
     s = settings or OccupancySettings()
-    gray = img.convert("L")
+    # Green only: a heating zone glows red/orange (little green) and must not
+    # look like a pot; steel, pan rims and the printed rings are neutral.
+    gray = img.convert("RGB").getchannel("G")
     px = gray.load()
     glass = _box_median(px, glass_box)
     areas = list(areas)

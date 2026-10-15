@@ -79,7 +79,6 @@ class DecoderSettings:
     tint: int = 25
     weak_tint: int = 15
     contrast: int = 70
-    contrast_skip_bottom: int = 3
     slant: float = 0.25
     threshold: float = 0.5
     min_score: float = 0.7
@@ -140,29 +139,67 @@ def _residual_heat_bars(
     return len(groups)
 
 
+def _drop_edge_blobs(mask: list[list[bool]], w: int, h: int) -> list[list[bool]]:
+    """Remove connected blobs that touch the window's edges.
+
+    Those belong to something bigger than the window (a printed zone key
+    symbol, a reflection) and only look like a bar where the window cuts
+    through them.
+    """
+    seen = [[False] * w for _ in range(h)]
+    keep = [[False] * w for _ in range(h)]
+    for sy in range(h):
+        for sx in range(w):
+            if not mask[sy][sx] or seen[sy][sx]:
+                continue
+            blob, stack, edge = [], [(sx, sy)], False
+            seen[sy][sx] = True
+            while stack:
+                x, y = stack.pop()
+                blob.append((x, y))
+                edge = edge or x in (0, w - 1) or y in (0, h - 1)
+                for nx in (x - 1, x, x + 1):
+                    for ny in (y - 1, y, y + 1):
+                        if (
+                            0 <= nx < w
+                            and 0 <= ny < h
+                            and mask[ny][nx]
+                            and not seen[ny][nx]
+                        ):
+                            seen[ny][nx] = True
+                            stack.append((nx, ny))
+            if not edge:
+                for x, y in blob:
+                    keep[y][x] = True
+    return keep
+
+
 def _contrast_bars(px, w: int, h: int, s: DecoderSettings) -> int | None:
     """Residual heat bars found by brightness alone.
 
     Under some light the camera shifts its white balance and the (dimmer)
     residual heat bars come out white, without any tint. Find them as short,
-    wide strokes much brighter than the rest of the window. The bottom rows
-    are left out: the printed zone key sits just below the display.
+    wide strokes much brighter than the rest of the window. Bright blobs
+    touching the window's edges are ignored: the printed zone key symbols
+    just below the display reflect light too, and a window cutting through
+    one leaves a flat edge that looks just like a bar.
     """
-    rows = h - s.contrast_skip_bottom
-    value = [[sum(px[x, y][:3]) / 3 for x in range(w)] for y in range(rows)]
+    value = [[sum(px[x, y][:3]) / 3 for x in range(w)] for y in range(h)]
     background = sorted(v for row in value for v in row)[len(value) * w // 2]
-    strong = [[v > background + s.contrast for v in row] for row in value]
-    faint = [[v > background + s.contrast / 2 for v in row] for row in value]
+    strong = _drop_edge_blobs(
+        [[v > background + s.contrast for v in row] for row in value], w, h
+    )
+    faint = _drop_edge_blobs(
+        [[v > background + s.contrast / 2 for v in row] for row in value], w, h
+    )
     if sum(map(sum, strong)) < s.min_lit:
         return None
-    bars = _residual_heat_bars(strong, faint, w, rows)
+    bars = _residual_heat_bars(strong, faint, w, h)
     if bars is None:
         return None
-    # Strokes must look like bars: wide, and nothing else bright around
-    cols = [x for x in range(w) if any(strong[y][x] for y in range(rows))]
+    # Strokes must look like bars: a digit's width
+    cols = [x for x in range(w) if any(strong[y][x] for y in range(h))]
     if not 3 <= max(cols) - min(cols) + 1 <= 10:
-        return None
-    if any(strong[0]) or any(strong[y][0] or strong[y][w - 1] for y in range(rows)):
         return None
     return bars
 

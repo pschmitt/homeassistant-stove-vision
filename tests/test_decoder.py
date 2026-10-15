@@ -39,6 +39,9 @@ def _read(name: str) -> dict[str, decoder.ZoneReading]:
         ("off.png", ["off", "off", "off", "off"]),
         ("levels_1_2_3_4.png", ["1", "2", "3", "4"]),
         ("levels_1_1_1_1.png", ["1", "1", "1", "1"]),
+        # Kitchen light reflecting off the zone key symbol under front right:
+        # cut by the window it looks like a residual heat bar
+        ("levels_off_5_off_off_key_glare.png", ["off", "5", "off", "off"]),
     ],
 )
 def test_levels(fixture: str, expected: list[str]) -> None:

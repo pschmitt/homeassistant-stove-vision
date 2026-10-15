@@ -167,6 +167,9 @@
       },
       "infrared": {
         "name": "Infrared"
+      },
+      "danger": {
+        "name": "Danger"
       }
     },
     "image": {

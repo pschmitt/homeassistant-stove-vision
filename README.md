@@ -26,6 +26,7 @@ seven-segment zone displays should work after calibrating the positions.
 | `sensor.<name>_rear_left` (and `rear_right`, `front_left`, `front_right`) | `off`, `0` (zone selected, not set yet), `1`-`9`, `residual_heat`, `obstructed`, `unknown`. Attributes: `level`, `residual_heat_bars`, the raw (unsmoothed) reading |
 | `binary_sensor.<name>_on` | Any zone is heating. Attribute `zones` |
 | `binary_sensor.<name>_hot` | Any zone is heating or shows residual heat |
+| `binary_sensor.<name>_danger` | A zone is heating (level 1-9) with nothing on it (free, or occupancy unsure). Residual heat doesn't count. Attributes: `zones`, `reasons`, `levels`. Alert when it stays on for a few minutes |
 | `image.<name>_panel` | The panel as last seen, with the zone windows and readings drawn in (diagnostic, for calibration) |
 | `binary_sensor.<name>_rear_left_occupied` (and the other zones) | Something (a pot, a pan) sits on the zone. Attributes: `ring_visibility`, `brightness`, the raw verdict of the latest frame |
 | `binary_sensor.<name>_infrared` | The camera is in night vision, nothing can be read (diagnostic) |

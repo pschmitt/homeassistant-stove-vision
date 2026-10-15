@@ -59,6 +59,7 @@ async def async_setup_entry(
                 for description in DESCRIPTIONS
             ),
             *(ZoneOccupancySensor(coordinator, zone) for zone in ZONES),
+            DangerSensor(coordinator),
             InfraredSensor(coordinator),
         ]
     )
@@ -156,3 +157,50 @@ class InfraredSensor(StoveVisionEntity, BinarySensorEntity):
         if self.coordinator.data is None:
             return None
         return self.coordinator.data.infrared
+
+
+class DangerSensor(StoveVisionEntity, BinarySensorEntity):
+    """A zone is heating with nothing on it.
+
+    Residual heat doesn't count (that's safe). "Nothing on it" includes
+    zones whose occupancy can't be told (dark, just started): the safe side.
+    Alert on this staying on for a while, not on the first frame.
+    """
+
+    _attr_device_class = BinarySensorDeviceClass.SAFETY
+    _attr_translation_key = "danger"
+
+    def __init__(self, coordinator: StoveVisionCoordinator) -> None:
+        """Set up the sensor."""
+        super().__init__(coordinator, "danger")
+
+    def _zones(self) -> dict[str, str]:
+        data = self.coordinator.data
+        if data is None or data.infrared:
+            return {}
+        result = {}
+        for key, zone in data.zones.items():
+            if not zone.is_on:
+                continue
+            occupied = data.occupancy[key].occupied
+            if occupied is not True:
+                result[key] = "free" if occupied is False else "unsure"
+        return result
+
+    @property
+    def is_on(self) -> bool | None:
+        """Any heating zone without a pot."""
+        if self.coordinator.data is None or self.coordinator.data.infrared:
+            return None
+        return bool(self._zones())
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """The zones and why: free, or occupancy unsure."""
+        zones = self._zones()
+        data = self.coordinator.data
+        return {
+            "zones": list(zones),
+            "reasons": zones,
+            "levels": {key: data.zones[key].level for key in zones} if data else {},
+        }
