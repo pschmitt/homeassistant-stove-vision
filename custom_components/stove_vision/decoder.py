@@ -120,22 +120,25 @@ def _residual_heat_bars(
                 groups[-1] = (groups[-1][0], y)
             else:
                 groups.append((y, y))
+
     if not 1 <= len(groups) <= 3 or any(b - a > 3 for a, b in groups):
         return None
+
     if any(groups[i + 1][0] - groups[i][1] < 2 for i in range(len(groups) - 1)):
         return None
-    # The gaps between the bars must be completely dark. A digit like 3 also
-    # has three bars, but joined by (thin, faint) vertical strokes.
+    # A digit like 3 also has three bars, but joined by vertical strokes:
+    # thin and faint, yet lit in every row between two bars. Bars have dark
+    # gaps; a stray lit pixel in one gap row doesn't join them.
     span = [
         x
         for x in range(w)
         if any(tinted[y][x] for a, b in groups for y in range(a, b + 1))
     ]
+    columns = range(max(0, min(span) - 1), min(w, max(span) + 2))
     for i in range(len(groups) - 1):
-        for y in range(groups[i][1] + 1, groups[i + 1][0]):
-            for x in range(max(0, min(span) - 1), min(w, max(span) + 2)):
-                if tinted[y][x] or glow[y][x]:
-                    return None
+        gap = range(groups[i][1] + 1, groups[i + 1][0])
+        if all(any(tinted[y][x] or glow[y][x] for x in columns) for y in gap):
+            return None
     return len(groups)
 
 

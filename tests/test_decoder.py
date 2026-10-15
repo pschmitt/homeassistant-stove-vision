@@ -55,6 +55,16 @@ def test_residual_heat() -> None:
     assert [readings[z.key].heat_bars for z in ZONES] == [2, 2, 3, 3]
 
 
+def test_residual_heat_stray_pixel_in_gap() -> None:
+    """One stray lit pixel between two bars doesn't make them a 3."""
+    readings = _read("residual_heat_off_3_off_off_stray_pixel.png")
+    assert readings["rear_right"].state == "residual_heat"
+    assert readings["rear_right"].heat_bars == 3
+    assert [readings[z].state for z in ("rear_left", "front_left", "front_right")] == [
+        "off"
+    ] * 3
+
+
 def test_residual_heat_dim() -> None:
     """Paler display (kitchen lights on), single bars."""
     readings = _read("residual_heat_dim_2_1_1_1.png")
