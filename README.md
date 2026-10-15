@@ -58,7 +58,7 @@ type: custom:stove-vision-card
 | `hold_action` | none | Long press, like native cards: `navigate` (`navigation_path`), `more-info` (`entity`), `url` (`url_path`), `none` |
 | `show_camera_button` | `true` | Camera button: flips the full card to the annotated camera crops, unfolds them under the compact card |
 
-All options are in the card editor as well. Heating zones glow and pulse
+All variants show danger right away (a zone heating with nothing on it, from `binary_sensor.<name>_danger`): a pulsing red ring and a chip on the full card, a red status and outlined pill on the compact one, a red badge and "without pot" on the tile. All options are in the card editor as well. Heating zones glow and pulse
 with their level (arc around the zone), residual heat shows as embers, pots
 sit on occupied zones (with steam when the zone is on), the control panel
 shows the digits. Tap a zone, digit or pot for its entity.

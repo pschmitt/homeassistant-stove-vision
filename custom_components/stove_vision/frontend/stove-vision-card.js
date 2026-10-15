@@ -196,6 +196,9 @@ class StoveVisionCard extends HTMLElement {
   _model() {
     const ids = this._entities();
     const zones = {};
+    const dangerState = this._state(ids.danger);
+    const dangerZones =
+      dangerState && dangerState.state === "on" ? dangerState.attributes.zones || [] : [];
     for (const [zone, zoneIds] of Object.entries(ids.zones)) {
       const display = this._state(zoneIds.display);
       const occupied = this._state(zoneIds.occupied);
@@ -207,6 +210,7 @@ class StoveVisionCard extends HTMLElement {
         level,
         heatBars: display ? display.attributes.residual_heat_bars || 0 : 0,
         occupied: occupied ? occupied.state : "unavailable",
+        danger: dangerZones.includes(zone),
       };
     }
     const infrared = this._state(ids.infrared);
@@ -223,6 +227,9 @@ class StoveVisionCard extends HTMLElement {
       images,
       infrared: infrared ? infrared.state === "on" : false,
       danger: danger ? danger.state === "on" : false,
+      // Zones heating with nothing (seen) on them; shown at once, unlike the
+      // alert and the mi-casa card which wait 5 minutes
+      dangerZones: danger && danger.state === "on" ? danger.attributes.zones || [] : [],
       title:
         this._config.title ||
         (device && (device.name_by_user || device.name)) ||
@@ -255,6 +262,11 @@ class StoveVisionCard extends HTMLElement {
     else chips.push(`<span class="chip off">Off</span>`);
     if (hot.length) chips.push(`<span class="chip hot">♨ ${hot.length} hot</span>`);
     if (pots.length) chips.push(`<span class="chip pot">🍲 ${pots.length} pot${pots.length > 1 ? "s" : ""}</span>`);
+    const dangerous = zones.filter(([, zone]) => zone.danger);
+    if (dangerous.length && !model.infrared) {
+      const names = dangerous.map(([key]) => SHORT[key]).join(", ");
+      chips.unshift(`<span class="chip danger">⚠ ${names}: nothing on it</span>`);
+    }
 
     if (this._compact) {
       this._renderCompact(model, { on, hot, pots, known });
@@ -301,6 +313,7 @@ class StoveVisionCard extends HTMLElement {
     let tone = "off";
     if (model.infrared) [status, tone] = ["Night vision, can't see", "ir"];
     else if (!known) status = "No reading";
+    else if (model.dangerZones.length) [status, tone] = ["Heating, nothing on it", "danger"];
     else if (on.length) [status, tone] = [`${on.length} zone${on.length > 1 ? "s" : ""} on`, "on"];
     else if (hot.length) [status, tone] = ["Off, still hot", "hot"];
     else status = "Off";
@@ -312,7 +325,9 @@ class StoveVisionCard extends HTMLElement {
       .map(([key, zone]) => {
         const value =
           zone.level > 0 ? zone.level : zone.state === "residual_heat" ? "♨" : "";
-        const cls = zone.level > 0 ? "on" : zone.state === "residual_heat" ? "hot" : "pot";
+        const cls =
+          (zone.level > 0 ? "on" : zone.state === "residual_heat" ? "hot" : "pot") +
+          (zone.danger ? " danger" : "");
         return `<span class="pill ${cls}" data-entity="${zone.ids.display || ""}">${short[key]}${
           value !== "" ? ` <b>${value}</b>` : ""
         }${zone.occupied === "on" ? " 🍲" : ""}</span>`;
@@ -351,7 +366,12 @@ class StoveVisionCard extends HTMLElement {
     if (model.infrared) [secondary, tone] = ["Night vision, can't see", "ir"];
     else if (!known) secondary = "No reading";
     else if (on.length) {
-      secondary = on.map(([key, zone]) => `${short[key]} ${zone.level}`).join(" · ");
+      // Zones heating without a pot first, marked as such
+      const ordered = [...on.filter(([, z]) => z.danger), ...on.filter(([, z]) => !z.danger)];
+      secondary = ordered
+        .map(([key, zone]) => `${short[key]} ${zone.level}${zone.danger ? " without pot" : ""}`)
+        .join(" · ");
+      if (model.dangerZones.length) secondary = `⚠ ${secondary}`;
       tone = model.danger ? "danger" : "on";
     } else if (hot.length) [secondary, tone] = ["Off, still hot", "hot"];
     else secondary = "Off";
@@ -364,7 +384,10 @@ class StoveVisionCard extends HTMLElement {
         const cls =
           zone.level > 0 ? "z-on" : zone.state === "residual_heat" ? "z-hot" : "z-off";
         const pot = zone.occupied === "on" ? `<circle cx="${x}" cy="${y}" r="${(r * 0.55).toFixed(1)}" class="z-pot"/>` : "";
-        return `<circle cx="${x}" cy="${y}" r="${r}" class="${cls}"/>${pot}`;
+        const ring = zone.danger
+          ? `<circle cx="${x}" cy="${y}" r="${(r + 1.6).toFixed(1)}" class="z-danger"/>`
+          : "";
+        return `<circle cx="${x}" cy="${y}" r="${r}" class="${cls}"/>${pot}${ring}`;
       })
       .join("");
     // In a grid, unfolding would stretch the neighbouring cards: the badge
@@ -506,6 +529,9 @@ class StoveVisionCard extends HTMLElement {
                  transform="rotate(-90 ${x} ${y})"/>`
       );
     }
+    if (zone.danger) {
+      parts.push(`<circle cx="${x}" cy="${y}" r="${outer + 24}" class="danger-ring"/>`);
+    }
     if (zone.occupied === "unavailable" || zone.occupied === "unknown") {
       parts.push(`<circle cx="${x}" cy="${y}" r="${outer + 4}" class="unsure"/>`);
     }
@@ -623,6 +649,8 @@ class StoveVisionCard extends HTMLElement {
   }
 }
 
+const SHORT = { rear_left: "RL", rear_right: "RR", front_left: "FL", front_right: "FR" };
+
 // Zones of the tile badge glyph (24x24): x, y, radius
 const TILE_ZONES = {
   rear_left: [7, 7.2, 3.6],
@@ -647,6 +675,7 @@ const STYLE = `
   .chip.on { background: rgba(229, 38, 31, 0.18); color: #ff6b4a; }
   .chip.hot { background: rgba(255, 154, 60, 0.18); color: #ff9a3c; }
   .chip.pot { background: rgba(120, 160, 200, 0.18); color: #8fb4dc; }
+  .chip.danger { background: rgba(244, 67, 54, 0.22); color: #ff5252; font-weight: 600; }
   .chip.ir { background: rgba(120, 110, 220, 0.2); color: #a99cff; }
   .toggle {
     border: none; background: var(--secondary-background-color); border-radius: 999px;
@@ -659,6 +688,11 @@ const STYLE = `
   .ring.lit { stroke: rgba(255, 190, 150, 0.55); }
   .track { fill: none; stroke: rgba(255, 255, 255, 0.06); stroke-width: 5; }
   .level { fill: none; stroke: #ff6a2b; stroke-width: 5; stroke-linecap: round; }
+  .danger-ring {
+    fill: none; stroke: #ff3b30; stroke-width: 4; stroke-dasharray: 10 8;
+    animation: danger 1.2s ease-in-out infinite;
+  }
+  @keyframes danger { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
   .unsure { fill: none; stroke: rgba(255, 255, 255, 0.25); stroke-width: 2; stroke-dasharray: 4 8; }
   .coil { fill: none; stroke: #ff5a1f; stroke-width: 3; }
   .heat { animation: pulse ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
@@ -727,6 +761,7 @@ const STYLE = `
   .z-off { fill: none; stroke: currentColor; stroke-width: 1.5; opacity: 0.85; }
   .z-on { fill: var(--red-color, #f44336); stroke: var(--red-color, #f44336); stroke-width: 1.5; }
   .z-hot { fill: var(--amber-color, #ffc107); fill-opacity: 0.55; stroke: var(--amber-color, #ffc107); stroke-width: 1.5; }
+  .z-danger { fill: none; stroke: var(--red-color, #f44336); stroke-width: 1.2; stroke-dasharray: 2 1.4; }
   .z-pot { fill: var(--primary-text-color, #e1e1e1); opacity: 0.9; }
   .tile-text { min-width: 0; display: flex; flex-direction: column; }
   .tile .primary {
@@ -752,6 +787,7 @@ const STYLE = `
   .status { font-size: 0.9em; color: var(--secondary-text-color); }
   .status.on { color: #ff6b4a; font-weight: 500; }
   .status.hot { color: #ff9a3c; }
+  .status.danger { color: #ff5252; font-weight: 600; }
   .status.ir { color: #a99cff; }
   .pills { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 2px; }
   .pill {
@@ -762,6 +798,7 @@ const STYLE = `
   .pill.on { background: rgba(229, 38, 31, 0.18); color: #ff6b4a; }
   .pill.hot { background: rgba(255, 154, 60, 0.18); color: #ff9a3c; }
   .pill.pot { background: rgba(120, 160, 200, 0.18); color: #8fb4dc; }
+  .pill.danger { box-shadow: inset 0 0 0 1.5px #ff5252; }
   .camera img { width: 100%; border-radius: 12px; display: block; }
 `;
 
