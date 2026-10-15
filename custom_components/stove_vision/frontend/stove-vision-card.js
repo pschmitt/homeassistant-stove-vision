@@ -363,17 +363,15 @@ class StoveVisionCard extends HTMLElement {
         return `<circle cx="${x}" cy="${y}" r="${r}" class="${cls}"/>${pot}`;
       })
       .join("");
-    const canCamera = model.images.zones && this._config.show_camera_button;
-    const camera =
-      this._showCamera && model.images.zones
-        ? `<div class="tile-camera"><img src="${model.images.zones}" alt="Zones"></div>`
-        : "";
+    // In a grid, unfolding would stretch the neighbouring cards: the badge
+    // opens the annotated camera image's own more-info dialog instead
+    const cameraEntity = this._config.show_camera_button ? model.ids.images.zones : undefined;
 
     this.shadowRoot.innerHTML = `
       <style>${STYLE}</style>
       <ha-card class="tile tone-${tone}">
         <div class="tile-row" data-entity="${(model.danger ? model.ids.danger : model.ids.on) || ""}">
-          <div class="badge" ${canCamera ? `data-action="camera" title="Camera view"` : ""}>
+          <div class="badge" ${cameraEntity ? `data-entity="${cameraEntity}" title="Camera view"` : ""}>
             <svg viewBox="0 0 24 24" aria-hidden="true">${glyph}</svg>
           </div>
           <div class="tile-text">
@@ -381,7 +379,6 @@ class StoveVisionCard extends HTMLElement {
             <div class="secondary">${secondary}</div>
           </div>
         </div>
-        ${camera}
       </ha-card>`;
   }
 
@@ -672,7 +669,7 @@ const STYLE = `
   .z-pot { fill: var(--primary-text-color, #e1e1e1); opacity: 0.9; }
   .tile-text { min-width: 0; display: flex; flex-direction: column; }
   .tile .primary {
-    font-weight: var(--card-primary-font-weight, bold);
+    font-weight: var(--card-primary-font-weight, 500);
     font-size: var(--card-primary-font-size, 14px);
     line-height: var(--card-primary-line-height, 20px);
     color: var(--card-primary-color, var(--primary-text-color));
@@ -680,14 +677,13 @@ const STYLE = `
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .tile .secondary {
-    font-weight: var(--card-secondary-font-weight, bolder);
+    font-weight: var(--card-secondary-font-weight, 400);
     font-size: var(--card-secondary-font-size, 12px);
     line-height: var(--card-secondary-line-height, 16px);
     color: var(--card-secondary-color, var(--secondary-text-color));
     letter-spacing: var(--card-secondary-letter-spacing, 0.4px);
   }
-  .tile-camera { padding-top: var(--spacing, 12px); }
-  .tile-camera img { width: 100%; border-radius: 10px; display: block; }
+
   .mini { flex: 0 0 auto; width: 92px; }
   .mini svg { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35)); }
   .info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
