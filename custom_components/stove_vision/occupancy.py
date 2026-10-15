@@ -180,10 +180,8 @@ class OccupancyTracker:
         self.last = reading
         if reading.occupied is None:
             return self.state
-        if self.state is None:
-            # First reading after start: take it as is
-            self.state = reading.occupied
-            return self.state
+        # No shortcut for the first readings after a start: a single frame
+        # with a shadowed ring must not latch "occupied"
         if reading.occupied == self.state:
             self._pending, self._count = None, 0
             return self.state

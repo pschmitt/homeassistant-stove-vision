@@ -33,20 +33,33 @@ seven-segment zone displays should work after calibrating the positions.
 
 ## Card
 
-The integration ships a Lovelace card and loads it itself (no resource to
-add):
+![Stove Vision card](docs/card.png)
+
+![Stove Vision card, compact](docs/card-compact.png)
+
+*(Example states: three zones on, two pots, one zone with residual heat.)*
+
+The integration ships a Lovelace card and registers it as a dashboard
+resource itself: nothing to install or add.
 
 ```yaml
 type: custom:stove-vision-card
-# device: <device id>   # optional, first Stove Vision device otherwise
-# title: Kitchen        # optional
 ```
 
-It draws the stove: heating zones glow and pulse with their level (arc
-around the zone), residual heat shows as embers, pots sit on occupied zones
-(with steam when the zone is on), the control panel shows the digits. Tap a
-zone, digit or pot for its entity; the camera button flips to the annotated
-camera crops.
+| Option | Default | |
+|---|---|---|
+| `device` | first Stove Vision device | Which stove |
+| `title` | device name | |
+| `variant` | `full` | `full`: the whole stove. `compact`: one row (mini stove, status, zone pills), for popups and small spaces |
+| `show_header` | `true` | Full: title, chips and camera button |
+| `show_chips` | `true` | Status chips (full) / zone pills (compact) |
+| `show_panel` | `true` | Full: the control panel digits |
+| `show_camera_button` | `true` | Full: flip to the annotated camera crops |
+
+All options are in the card editor as well. Heating zones glow and pulse
+with their level (arc around the zone), residual heat shows as embers, pots
+sit on occupied zones (with steam when the zone is on), the control panel
+shows the digits. Tap a zone, digit or pot for its entity.
 
 ## Night vision
 

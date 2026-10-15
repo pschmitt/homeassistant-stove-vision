@@ -5,6 +5,11 @@
  *   type: custom:stove-vision-card
  *   device: <device id>        # optional, first Stove Vision device otherwise
  *   title: Kochfeld            # optional, device name otherwise
+ *   variant: full              # full | compact (one row, for popups)
+ *   show_header: true          # full: title, chips and camera button
+ *   show_chips: true           # status chips (full) / zone pills (compact)
+ *   show_panel: true           # full: control panel digits
+ *   show_camera_button: true   # full: flip to the annotated camera crops
  *
  * Part of the stove_vision integration, which serves it and loads it in the
  * frontend: no resource to add. GPL-3.0, see LICENSE.
@@ -64,18 +69,70 @@ const svgDigit = (glyph, lit) =>
 
 class StoveVisionCard extends HTMLElement {
   static getStubConfig() {
-    return {};
+    return { variant: "full" };
   }
 
-  static getConfigElement() {
-    return undefined;
+  // Built-in form editor
+  static getConfigForm() {
+    const labels = {
+      device: "Stove (device)",
+      title: "Title",
+      variant: "Variant",
+      show_header: "Header",
+      show_chips: "Status chips / zone pills",
+      show_panel: "Control panel digits",
+      show_camera_button: "Camera button",
+    };
+    return {
+      schema: [
+        { name: "device", selector: { device: { integration: "stove_vision" } } },
+        { name: "title", selector: { text: {} } },
+        {
+          name: "variant",
+          selector: {
+            select: {
+              mode: "dropdown",
+              options: [
+                { value: "full", label: "Full: the whole stove" },
+                { value: "compact", label: "Compact: one row, for popups" },
+              ],
+            },
+          },
+        },
+        {
+          type: "grid",
+          name: "",
+          schema: [
+            { name: "show_header", selector: { boolean: {} } },
+            { name: "show_chips", selector: { boolean: {} } },
+            { name: "show_panel", selector: { boolean: {} } },
+            { name: "show_camera_button", selector: { boolean: {} } },
+          ],
+        },
+      ],
+      computeLabel: (schema) => labels[schema.name],
+    };
   }
 
   setConfig(config) {
-    this._config = { show_camera: false, ...config };
-    this._showCamera = Boolean(this._config.show_camera);
+    this._config = {
+      variant: "full",
+      show_header: true,
+      show_chips: true,
+      show_panel: true,
+      show_camera_button: true,
+      ...config,
+    };
+    if (!["full", "compact"].includes(this._config.variant)) {
+      throw new Error(`Unknown variant: ${this._config.variant}`);
+    }
+    this._showCamera = false;
     this._signature = undefined;
     if (this._hass) this._render();
+  }
+
+  get _compact() {
+    return this._config.variant === "compact";
   }
 
   set hass(hass) {
@@ -84,11 +141,13 @@ class StoveVisionCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 7;
+    return this._compact ? 2 : 7;
   }
 
   getGridOptions() {
-    return { columns: 12, min_columns: 6, rows: "auto" };
+    return this._compact
+      ? { columns: 12, min_columns: 6, rows: 2, min_rows: 2 }
+      : { columns: 12, min_columns: 6, rows: "auto" };
   }
 
   _entities() {
@@ -161,7 +220,7 @@ class StoveVisionCard extends HTMLElement {
   _render() {
     if (!this._hass || !this._config) return;
     const model = this._model();
-    const signature = JSON.stringify([model, this._showCamera]);
+    const signature = JSON.stringify([model, this._showCamera, this._config]);
     if (signature === this._signature) return;
     this._signature = signature;
 
@@ -183,25 +242,34 @@ class StoveVisionCard extends HTMLElement {
     if (hot.length) chips.push(`<span class="chip hot">♨ ${hot.length} hot</span>`);
     if (pots.length) chips.push(`<span class="chip pot">🍲 ${pots.length} pot${pots.length > 1 ? "s" : ""}</span>`);
 
-    const cameraButton = model.images.zones
-      ? `<button class="toggle" data-action="camera" title="Camera view">${this._showCamera ? "✨" : "📷"}</button>`
+    if (this._compact) {
+      this._renderCompact(model, { on, hot, pots, known });
+      return;
+    }
+
+    const cameraButton =
+      model.images.zones && this._config.show_camera_button
+        ? `<button class="toggle" data-action="camera" title="Camera view">${this._showCamera ? "✨" : "📷"}</button>`
+        : "";
+    const header = this._config.show_header
+      ? `<div class="header">
+           <div class="title">${model.title}</div>
+           <div class="chips">${this._config.show_chips ? chips.join("") : ""}</div>
+           ${cameraButton}
+         </div>`
       : "";
 
     this.shadowRoot.innerHTML = `
       <style>${STYLE}</style>
-      <ha-card>
-        <div class="header">
-          <div class="title">${model.title}</div>
-          <div class="chips">${chips.join("")}</div>
-          ${cameraButton}
-        </div>
+      <ha-card class="${this._config.show_header ? "" : "bare"}">
+        ${header}
         ${
           this._showCamera
             ? `<div class="camera">
                  <img src="${model.images.zones}" alt="Zones">
                  ${model.images.panel ? `<img src="${model.images.panel}" alt="Panel">` : ""}
                </div>`
-            : `<div class="stove">${this._svg(model)}${
+            : `<div class="stove">${this._svg(model, this._config.show_panel)}${
                 model.infrared
                   ? `<div class="overlay"><div>🌙</div><div>Camera is in night vision.<br>Nothing on the stove can be read.</div></div>`
                   : ""
@@ -210,7 +278,42 @@ class StoveVisionCard extends HTMLElement {
       </ha-card>`;
   }
 
-  _svg(model) {
+  _renderCompact(model, { on, hot, pots, known }) {
+    let status;
+    let tone = "off";
+    if (model.infrared) [status, tone] = ["Night vision, can't see", "ir"];
+    else if (!known) status = "No reading";
+    else if (on.length) [status, tone] = [`${on.length} zone${on.length > 1 ? "s" : ""} on`, "on"];
+    else if (hot.length) [status, tone] = ["Off, still hot", "hot"];
+    else status = "Off";
+    if (pots.length && !model.infrared) status += ` · ${pots.length} pot${pots.length > 1 ? "s" : ""}`;
+
+    const short = { rear_left: "RL", rear_right: "RR", front_left: "FL", front_right: "FR" };
+    const pills = Object.entries(model.zones)
+      .filter(([, zone]) => zone.level > 0 || zone.state === "residual_heat" || zone.occupied === "on")
+      .map(([key, zone]) => {
+        const value =
+          zone.level > 0 ? (zone.level === 10 ? "P" : zone.level) : zone.state === "residual_heat" ? "♨" : "";
+        const cls = zone.level > 0 ? "on" : zone.state === "residual_heat" ? "hot" : "pot";
+        return `<span class="pill ${cls}" data-entity="${zone.ids.display || ""}">${short[key]}${
+          value !== "" ? ` <b>${value}</b>` : ""
+        }${zone.occupied === "on" ? " 🍲" : ""}</span>`;
+      })
+      .join("");
+
+    this.shadowRoot.innerHTML = `
+      <style>${STYLE}</style>
+      <ha-card class="compact" data-entity="${model.ids.on || ""}">
+        <div class="mini">${this._svg(model, false, true)}</div>
+        <div class="info">
+          <div class="title">${model.title}</div>
+          <div class="status ${tone}">${status}</div>
+          ${this._config.show_chips && pills ? `<div class="pills">${pills}</div>` : ""}
+        </div>
+      </ha-card>`;
+  }
+
+  _svg(model, showPanel = true, mini = false) {
     const zoneSvg = Object.entries(model.zones)
       .map(([key, zone]) => this._zoneSvg(key, zone))
       .join("");
@@ -229,7 +332,9 @@ class StoveVisionCard extends HTMLElement {
                 </g>`;
       })
       .join("");
-    const scale = Array.from({ length: 10 }, (_, i) => `<text x="${206 + i * 18}" y="492">${i}</text>`).join("");
+    const scale = showPanel
+      ? Array.from({ length: 10 }, (_, i) => `<text x="${206 + i * 18}" y="492">${i}</text>`).join("")
+      : "";
     return `
       <svg viewBox="-24 -24 628 548" role="img" aria-label="Stove">
         <defs>
@@ -279,8 +384,8 @@ class StoveVisionCard extends HTMLElement {
         <rect x="0" y="0" width="580" height="500" rx="20" fill="url(#glass)"/>
         ${zoneSvg}
         <rect x="0" y="0" width="580" height="500" rx="20" fill="url(#sheen)" pointer-events="none"/>
-        <text x="290" y="300" class="brand">S T O V E · V I S I O N</text>
-        <g class="panel" filter="url(#led)">${digits}</g>
+        ${mini ? "" : `<text x="290" y="300" class="brand">S T O V E · V I S I O N</text>`}
+        ${showPanel ? `<g class="panel" filter="url(#led)">${digits}</g>` : ""}
         <g class="scale">${scale}</g>
       </svg>`;
   }
@@ -364,6 +469,15 @@ class StoveVisionCard extends HTMLElement {
   }
 
   _onClick(event) {
+    if (this._compact) {
+      const target = event.target.closest("[data-entity]");
+      if (target && target.dataset.entity) {
+        const moreInfo = new Event("hass-more-info", { bubbles: true, composed: true });
+        moreInfo.detail = { entityId: target.dataset.entity };
+        this.dispatchEvent(moreInfo);
+      }
+      return;
+    }
     const action = event.target.closest("[data-action]");
     if (action && action.dataset.action === "camera") {
       this._showCamera = !this._showCamera;
@@ -445,6 +559,28 @@ const STYLE = `
   }
   .overlay div:first-child { font-size: 2.4em; }
   .camera { display: grid; gap: 8px; padding: 4px 12px 14px; }
+  ha-card.bare .stove { padding-top: 12px; }
+  ha-card.compact {
+    display: flex; align-items: center; gap: 14px; padding: 10px 14px; cursor: pointer;
+    height: 100%; box-sizing: border-box;
+  }
+  .mini { flex: 0 0 auto; width: 92px; }
+  .mini svg { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35)); }
+  .info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .compact .title { font-size: 1em; font-weight: 500; }
+  .status { font-size: 0.9em; color: var(--secondary-text-color); }
+  .status.on { color: #ff6b4a; font-weight: 500; }
+  .status.hot { color: #ff9a3c; }
+  .status.ir { color: #a99cff; }
+  .pills { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 2px; }
+  .pill {
+    font-size: 0.75em; padding: 2px 8px; border-radius: 999px;
+    background: var(--secondary-background-color); color: var(--secondary-text-color);
+  }
+  .pill b { font-weight: 700; }
+  .pill.on { background: rgba(229, 38, 31, 0.18); color: #ff6b4a; }
+  .pill.hot { background: rgba(255, 154, 60, 0.18); color: #ff9a3c; }
+  .pill.pot { background: rgba(120, 160, 200, 0.18); color: #8fb4dc; }
   .camera img { width: 100%; border-radius: 12px; display: block; }
 `;
 

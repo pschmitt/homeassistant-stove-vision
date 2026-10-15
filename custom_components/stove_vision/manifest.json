@@ -11,7 +11,8 @@
   "dependencies": [
     "frontend",
     "http",
-    "image"
+    "image",
+    "lovelace"
   ],
   "documentation": "https://github.com/pschmitt/homeassistant-stove-vision",
   "integration_type": "device",

@@ -70,28 +70,40 @@ def _r(occupied: bool | None, bright: bool = False) -> occupancy.OccupancyReadin
     return occupancy.OccupancyReading(occupied, 0.0, 0.0, bright)
 
 
-def test_tracker_first_reading_sticks() -> None:
-    tracker = occupancy.OccupancyTracker()
+def _settle(tracker: occupancy.OccupancyTracker, reading) -> None:
+    for _ in range(tracker.slow):
+        tracker.update(reading)
+
+
+def test_tracker_first_readings_are_debounced() -> None:
+    tracker = occupancy.OccupancyTracker(fast=2, slow=6)
+    assert tracker.update(_r(False)) is None
     assert tracker.update(_r(False)) is False
+
+
+def test_tracker_start_with_hidden_ring_needs_slow() -> None:
+    tracker = occupancy.OccupancyTracker(fast=2, slow=6)
+    states = [tracker.update(_r(True)) for _ in range(6)]
+    assert states == [None] * 5 + [True]
 
 
 def test_tracker_bright_switches_fast() -> None:
     tracker = occupancy.OccupancyTracker(fast=2, slow=6)
-    tracker.update(_r(False))
+    _settle(tracker, _r(False))
     assert tracker.update(_r(True, bright=True)) is False
     assert tracker.update(_r(True, bright=True)) is True
 
 
 def test_tracker_hidden_ring_switches_slow() -> None:
     tracker = occupancy.OccupancyTracker(fast=2, slow=6)
-    tracker.update(_r(False))
+    _settle(tracker, _r(False))
     states = [tracker.update(_r(True)) for _ in range(6)]
     assert states == [False] * 5 + [True]
 
 
 def test_tracker_unsure_keeps_state() -> None:
     tracker = occupancy.OccupancyTracker()
-    tracker.update(_r(True, bright=True))
+    _settle(tracker, _r(True, bright=True))
     assert tracker.update(_r(None)) is True
     assert tracker.update(_r(None)) is True
 
