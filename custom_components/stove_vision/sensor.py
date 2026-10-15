@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import StoveVisionConfigEntry
-from .const import LEVELS, STATE_BOOST, ZONES
+from .const import LEVELS, ZONES
 from .coordinator import StoveVisionCoordinator
 from .decoder import STATE_OBSTRUCTED, STATE_OFF, STATE_RESIDUAL_HEAT, STATE_UNKNOWN
 from .entity import StoveVisionEntity
@@ -18,7 +18,6 @@ OPTIONS = [
     STATE_OFF,
     "0",
     *LEVELS,
-    STATE_BOOST,
     STATE_RESIDUAL_HEAT,
     STATE_OBSTRUCTED,
     STATE_UNKNOWN,

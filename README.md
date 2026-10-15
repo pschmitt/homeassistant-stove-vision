@@ -23,7 +23,7 @@ seven-segment zone displays should work after calibrating the positions.
 
 | Entity | |
 |---|---|
-| `sensor.<name>_rear_left` (and `rear_right`, `front_left`, `front_right`) | `off`, `1`-`9`, `boost`, `residual_heat`, `obstructed`, `unknown`. Attributes: `level`, `residual_heat_bars`, the raw (unsmoothed) reading |
+| `sensor.<name>_rear_left` (and `rear_right`, `front_left`, `front_right`) | `off`, `0` (zone selected, not set yet), `1`-`9`, `residual_heat`, `obstructed`, `unknown`. Attributes: `level`, `residual_heat_bars`, the raw (unsmoothed) reading |
 | `binary_sensor.<name>_on` | Any zone is heating. Attribute `zones` |
 | `binary_sensor.<name>_hot` | Any zone is heating or shows residual heat |
 | `image.<name>_panel` | The panel as last seen, with the zone windows and readings drawn in (diagnostic, for calibration) |

@@ -57,7 +57,6 @@ const GLYPHS = {
   7: "abc",
   8: "abcdefg",
   9: "abcdfg",
-  P: "abefg",
 };
 const HEAT_BARS = { 1: "d", 2: "dg", 3: "adg" };
 
@@ -189,7 +188,7 @@ class StoveVisionCard extends HTMLElement {
       const display = this._state(zoneIds.display);
       const occupied = this._state(zoneIds.occupied);
       const state = display ? display.state : "unavailable";
-      const level = /^[1-9]$/.test(state) ? Number(state) : state === "boost" ? 10 : 0;
+      const level = /^[1-9]$/.test(state) ? Number(state) : 0;
       zones[zone] = {
         ids: zoneIds,
         state,
@@ -293,7 +292,7 @@ class StoveVisionCard extends HTMLElement {
       .filter(([, zone]) => zone.level > 0 || zone.state === "residual_heat" || zone.occupied === "on")
       .map(([key, zone]) => {
         const value =
-          zone.level > 0 ? (zone.level === 10 ? "P" : zone.level) : zone.state === "residual_heat" ? "♨" : "";
+          zone.level > 0 ? zone.level : zone.state === "residual_heat" ? "♨" : "";
         const cls = zone.level > 0 ? "on" : zone.state === "residual_heat" ? "hot" : "pot";
         return `<span class="pill ${cls}" data-entity="${zone.ids.display || ""}">${short[key]}${
           value !== "" ? ` <b>${value}</b>` : ""
@@ -322,7 +321,7 @@ class StoveVisionCard extends HTMLElement {
         const pos = DIGITS[key];
         let glyph = "";
         let lit = true;
-        if (zone.level > 0) glyph = zone.level === 10 ? GLYPHS.P : GLYPHS[zone.level];
+        if (zone.level > 0) glyph = GLYPHS[zone.level];
         else if (zone.state === "residual_heat") glyph = HEAT_BARS[zone.heatBars] || HEAT_BARS[1];
         else if (zone.state === "0") glyph = GLYPHS[0];
         else lit = false;

@@ -35,7 +35,6 @@ from .const import (
     DOMAIN,
     FETCH_TIMEOUT,
     MAX_CONSECUTIVE_FAILURES,
-    STATE_BOOST,
     ZONES,
 )
 from .decoder import (
@@ -136,8 +135,8 @@ class ZoneState:
 
     @property
     def state(self) -> str:
-        """Display state: off, 1-9, boost, residual_heat, unknown, obstructed."""
-        return STATE_BOOST if self.reading.state == "P" else self.reading.state
+        """Display state: off, 0-9, residual_heat, unknown, obstructed."""
+        return self.reading.state
 
     @property
     def level(self) -> int | None:
@@ -147,7 +146,7 @@ class ZoneState:
     @property
     def is_on(self) -> bool:
         """Zone is heating."""
-        return self.level is not None or self.state == STATE_BOOST
+        return self.level is not None
 
 
 @dataclass(slots=True)

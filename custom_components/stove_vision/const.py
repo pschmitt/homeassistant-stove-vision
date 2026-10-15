@@ -49,4 +49,3 @@ MAX_CONSECUTIVE_FAILURES = 3
 FETCH_TIMEOUT = 20
 
 LEVELS = tuple(str(level) for level in range(1, 10))
-STATE_BOOST = "boost"
