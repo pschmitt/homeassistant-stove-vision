@@ -16,6 +16,8 @@ CONF_SMOOTHING = "smoothing"
 # Zone keys, in the order they appear on the panel
 ZONES = ("rear_left", "rear_right", "front_left", "front_right")
 CONF_ZONE_PREFIX = "zone_"
+CONF_RINGS_PREFIX = "rings_"
+CONF_GLASS_BOX = "glass_box"
 
 DEFAULT_NAME = "Hob"
 DEFAULT_SNAPSHOT_URL = (
@@ -31,6 +33,15 @@ DEFAULT_ZONE_POSITIONS = {
     "front_left": "939,600",
     "front_right": "1022,600",
 }
+# Printed rings per zone (cx,cy,rx,ry; dual zones have two, separated by ";")
+# and a patch of bare glass between the zones, same frame
+DEFAULT_ZONE_RINGS = {
+    "rear_left": "795,280,71,70",
+    "rear_right": "1111,311,105,103;1111,309,61,59",
+    "front_left": "809,519,91,92;809,518,51,52",
+    "front_right": "1148,536,73,74",
+}
+DEFAULT_GLASS_BOX = "930,395,980,440"
 
 # A frame grab (go2rtc waits for a keyframe) or decode can fail now and then;
 # keep the last state for a few polls before going unavailable.

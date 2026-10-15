@@ -19,6 +19,8 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_CAMERA_ENTITY,
+    CONF_GLASS_BOX,
+    CONF_RINGS_PREFIX,
     CONF_ROTATION,
     CONF_SCAN_INTERVAL,
     CONF_SMOOTHING,
@@ -26,8 +28,10 @@ from .const import (
     CONF_ZONE_PREFIX,
     DEFAULT_ROTATION,
     DEFAULT_SCAN_INTERVAL,
+    DEFAULT_GLASS_BOX,
     DEFAULT_SMOOTHING,
     DEFAULT_ZONE_POSITIONS,
+    DEFAULT_ZONE_RINGS,
     DOMAIN,
     FETCH_TIMEOUT,
     MAX_CONSECUTIVE_FAILURES,
@@ -43,6 +47,14 @@ from .decoder import (
     read_frame,
     smooth,
 )
+from .occupancy import (
+    OccupancyReading,
+    OccupancyTracker,
+    Ring,
+    ZoneArea,
+    annotate_hob,
+    read_occupancy,
+)
 
 if TYPE_CHECKING:
     from . import HobVisionConfigEntry
@@ -54,6 +66,37 @@ def parse_position(value: str) -> tuple[int, int]:
     """Parse an "x,y" zone position."""
     x, y = (int(part.strip()) for part in value.split(","))
     return x, y
+
+
+def parse_ints(value: str, count: int) -> tuple[int, ...]:
+    """Parse comma separated integers, exactly `count` of them."""
+    parts = tuple(int(part.strip()) for part in value.split(","))
+    if len(parts) != count:
+        raise ValueError(f"expected {count} numbers, got {len(parts)}")
+    return parts
+
+
+def parse_rings(value: str) -> tuple[Ring, ...]:
+    """Parse "cx,cy,rx,ry[;cx,cy,rx,ry]"."""
+    rings = tuple(
+        Ring(*parse_ints(part, 4)) for part in value.split(";") if part.strip()
+    )
+    if not rings:
+        raise ValueError("no ring")
+    return rings
+
+
+def areas_from_options(options: dict[str, Any]) -> list[ZoneArea]:
+    """The configured zone rings."""
+    return [
+        ZoneArea(
+            key,
+            parse_rings(
+                options.get(f"{CONF_RINGS_PREFIX}{key}", DEFAULT_ZONE_RINGS[key])
+            ),
+        )
+        for key in ZONES
+    ]
 
 
 def zones_from_options(options: dict[str, Any]) -> list[Zone]:
@@ -106,10 +149,19 @@ class ZoneState:
 
 
 @dataclass(slots=True)
+class ZoneOccupancy:
+    """Debounced occupancy of a zone plus the latest frame's evidence."""
+
+    occupied: bool | None
+    reading: OccupancyReading
+
+
+@dataclass(slots=True)
 class HobData:
     """Result of one poll."""
 
     zones: dict[str, ZoneState]
+    occupancy: dict[str, ZoneOccupancy]
     frame_time: datetime
 
 
@@ -137,23 +189,44 @@ class HobVisionCoordinator(DataUpdateCoordinator[HobData]):
         self._history: dict[str, deque[ZoneReading]] = {
             zone.key: deque(maxlen=max(1, smoothing)) for zone in self.zones
         }
+        self.areas = areas_from_options(self.config)
+        self.glass_box = parse_ints(
+            self.config.get(CONF_GLASS_BOX, DEFAULT_GLASS_BOX), 4
+        )
+        self._trackers = {area.key: OccupancyTracker() for area in self.areas}
         self._failures = 0
         self.panel_image: bytes | None = None
-        self.panel_image_time: datetime | None = None
+        self.hob_image: bytes | None = None
+        self.image_time: datetime | None = None
 
-    def _decode(self, frame: bytes) -> tuple[dict[str, ZoneReading], bytes]:
+    def _decode(
+        self, frame: bytes
+    ) -> tuple[dict[str, ZoneReading], dict[str, OccupancyReading], bytes, bytes]:
         """Decode a frame (runs in the executor: Pillow is CPU work)."""
         img = load_frame(frame, self.rotation)
         readings = read_frame(img, self.zones, self.settings)
-        return readings, annotate(img, self.zones, readings, self.settings)
+        occupancy = read_occupancy(img, self.areas, self.glass_box)
+        states = {
+            key: self._trackers[key].update(reading)
+            for key, reading in occupancy.items()
+        }
+        return (
+            readings,
+            occupancy,
+            annotate(img, self.zones, readings, self.settings),
+            annotate_hob(img, self.areas, self.glass_box, states),
+        )
 
     async def _async_update_data(self) -> HobData:
         try:
             async with asyncio.timeout(FETCH_TIMEOUT + 10):
                 frame = await async_fetch_frame(self.hass, self.config)
-                readings, panel = await self.hass.async_add_executor_job(
-                    self._decode, frame
-                )
+                (
+                    readings,
+                    occupancy,
+                    panel,
+                    hob,
+                ) = await self.hass.async_add_executor_job(self._decode, frame)
         except (
             ClientError,
             HomeAssistantError,
@@ -171,10 +244,14 @@ class HobVisionCoordinator(DataUpdateCoordinator[HobData]):
         self._failures = 0
 
         now = dt_util.utcnow()
-        self.panel_image, self.panel_image_time = panel, now
+        self.panel_image, self.hob_image, self.image_time = panel, hob, now
         zones = {}
         for key, reading in readings.items():
             history = self._history[key]
             history.append(reading)
             zones[key] = ZoneState(smooth(history), reading)
-        return HobData(zones, now)
+        occupied = {
+            key: ZoneOccupancy(self._trackers[key].state, reading)
+            for key, reading in occupancy.items()
+        }
+        return HobData(zones, occupied, now)

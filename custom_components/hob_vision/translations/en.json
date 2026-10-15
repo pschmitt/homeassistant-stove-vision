@@ -20,14 +20,16 @@
     "error": {
       "no_source": "Set a snapshot URL or a camera.",
       "cannot_fetch": "Could not fetch a frame from the source.",
-      "invalid_position": "Use x,y pixel coordinates, e.g. 957,575."
+      "invalid_position": "Use x,y pixel coordinates, e.g. 957,575.",
+      "invalid_rings": "Use cx,cy,rx,ry per ring, two rings separated by ;",
+      "invalid_box": "Use x0,y0,x1,y1."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Hob Vision",
-        "description": "Zone positions are the pixel centre (x,y) of each zone's digit in the rotated frame. The Panel image shows the windows being read.",
+        "description": "Positions are pixels in the rotated frame. Zone positions are the centre (x,y) of each zone's digit, see the Panel image. Rings are the printed circles around each zone, see the Zones image.",
         "data": {
           "snapshot_url": "Snapshot URL",
           "camera_entity": "Camera",
@@ -37,20 +39,32 @@
           "zone_rear_left": "Rear left zone position",
           "zone_rear_right": "Rear right zone position",
           "zone_front_left": "Front left zone position",
-          "zone_front_right": "Front right zone position"
+          "zone_front_right": "Front right zone position",
+          "rings_rear_left": "Rear left zone rings",
+          "rings_rear_right": "Rear right zone rings",
+          "rings_front_left": "Front left zone rings",
+          "rings_front_right": "Front right zone rings",
+          "glass_box": "Bare glass reference"
         },
         "data_description": {
           "snapshot_url": "URL returning a JPEG of the hob at full resolution, e.g. a go2rtc frame.jpeg endpoint",
           "camera_entity": "Alternative to the URL: a camera entity (often only a reduced-resolution snapshot)",
           "rotation": "Turn the frame so the control panel is upright",
-          "smoothing": "Majority vote over this many frames; hides display flicker and brief obstructions"
+          "smoothing": "Majority vote over this many frames; hides display flicker and brief obstructions",
+          "glass_box": "x0,y0,x1,y1 of a patch of bare glass between the zones (yellow box in the Zones image)",
+          "rings_rear_left": "Printed ring(s) around the zone as cx,cy,rx,ry; dual zones: two rings separated by ;",
+          "rings_rear_right": "Printed ring(s) around the zone as cx,cy,rx,ry; dual zones: two rings separated by ;",
+          "rings_front_left": "Printed ring(s) around the zone as cx,cy,rx,ry; dual zones: two rings separated by ;",
+          "rings_front_right": "Printed ring(s) around the zone as cx,cy,rx,ry; dual zones: two rings separated by ;"
         }
       }
     },
     "error": {
       "no_source": "Set a snapshot URL or a camera.",
       "cannot_fetch": "Could not fetch a frame from the source.",
-      "invalid_position": "Use x,y pixel coordinates, e.g. 957,575."
+      "invalid_position": "Use x,y pixel coordinates, e.g. 957,575.",
+      "invalid_rings": "Use cx,cy,rx,ry per ring, two rings separated by ;",
+      "invalid_box": "Use x0,y0,x1,y1."
     }
   },
   "entity": {
@@ -142,11 +156,26 @@
       },
       "hot": {
         "name": "Hot"
+      },
+      "rear_left_occupied": {
+        "name": "Rear left occupied"
+      },
+      "rear_right_occupied": {
+        "name": "Rear right occupied"
+      },
+      "front_left_occupied": {
+        "name": "Front left occupied"
+      },
+      "front_right_occupied": {
+        "name": "Front right occupied"
       }
     },
     "image": {
       "panel": {
         "name": "Panel"
+      },
+      "zones": {
+        "name": "Zones"
       }
     }
   }

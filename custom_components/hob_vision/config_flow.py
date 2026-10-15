@@ -14,21 +14,25 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_CAMERA_ENTITY,
+    CONF_GLASS_BOX,
+    CONF_RINGS_PREFIX,
     CONF_ROTATION,
     CONF_SCAN_INTERVAL,
     CONF_SMOOTHING,
     CONF_SNAPSHOT_URL,
     CONF_ZONE_PREFIX,
+    DEFAULT_GLASS_BOX,
     DEFAULT_NAME,
     DEFAULT_ROTATION,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SMOOTHING,
     DEFAULT_SNAPSHOT_URL,
     DEFAULT_ZONE_POSITIONS,
+    DEFAULT_ZONE_RINGS,
     DOMAIN,
     ZONES,
 )
-from .coordinator import async_fetch_frame, parse_position
+from .coordinator import async_fetch_frame, parse_ints, parse_position, parse_rings
 from .decoder import load_frame
 
 _LOGGER = logging.getLogger(__name__)
@@ -83,6 +87,16 @@ def _tuning_schema(defaults: dict[str, Any]) -> dict[vol.Marker, Any]:
         schema[
             vol.Required(key, default=defaults.get(key, DEFAULT_ZONE_POSITIONS[zone]))
         ] = selector.TextSelector()
+    for zone in ZONES:
+        key = f"{CONF_RINGS_PREFIX}{zone}"
+        schema[
+            vol.Required(key, default=defaults.get(key, DEFAULT_ZONE_RINGS[zone]))
+        ] = selector.TextSelector()
+    schema[
+        vol.Required(
+            CONF_GLASS_BOX, default=defaults.get(CONF_GLASS_BOX, DEFAULT_GLASS_BOX)
+        )
+    ] = selector.TextSelector()
     return schema
 
 
@@ -94,12 +108,21 @@ async def _async_validate(
     if not user_input.get(CONF_SNAPSHOT_URL) and not user_input.get(CONF_CAMERA_ENTITY):
         return {"base": "no_source"}
     for zone in ZONES:
-        key = f"{CONF_ZONE_PREFIX}{zone}"
-        if key in user_input:
-            try:
-                parse_position(user_input[key])
-            except ValueError:
-                errors[key] = "invalid_position"
+        checks = (
+            (f"{CONF_ZONE_PREFIX}{zone}", parse_position, "invalid_position"),
+            (f"{CONF_RINGS_PREFIX}{zone}", parse_rings, "invalid_rings"),
+        )
+        for key, parse, error in checks:
+            if key in user_input:
+                try:
+                    parse(user_input[key])
+                except ValueError:
+                    errors[key] = error
+    if CONF_GLASS_BOX in user_input:
+        try:
+            parse_ints(user_input[CONF_GLASS_BOX], 4)
+        except ValueError:
+            errors[CONF_GLASS_BOX] = "invalid_box"
     if errors:
         return errors
     try:
