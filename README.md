@@ -1,44 +1,60 @@
 # Stove Vision
 
-Home Assistant integration that reads the zone displays of a stove (power
-level, residual heat) and whether something sits on each zone from a camera
-pointed at it. No smart stove, no cloud:
-it polls a frame every few seconds and decodes the seven-segment digits.
+Home Assistant integration that reads a stove from a camera pointed at it:
+the zone displays (power level, residual heat), whether something sits on
+each zone, and whether a zone is heating with nothing on it. No smart stove,
+no cloud: it polls a frame every few seconds and decodes what it sees.
 
 ## Tested with
 
 - **Stove:** Miele KM 6203 (KM 6203 FL.BDG), a ceramic glass cooktop with
   four radiant zones (two of them dual-ring) and red seven-segment zone
-  displays. It has no Miele@Home support (its Con@ctivity link only talks to
-  a Miele range hood), hence the camera.
+  displays, levels 1-9. It has no Miele@Home support (its Con@ctivity link
+  only talks to a Miele range hood), hence the camera.
 - **Camera:** Reolink camera behind a Reolink Home Hub, mounted above the
   stove, read at 1920x1080 through Frigate's go2rtc
   (`api/frame.jpeg?src=<stream>`), day/night mode pinned to colour.
 
 Nothing in it is Miele-specific except the residual heat pattern (stacked
-horizontal bars) and the default positions; other cooktops with
-seven-segment zone displays should work after calibrating the positions.
+horizontal bars instead of an `H`) and the default positions; other cooktops
+with seven-segment zone displays should work after calibrating the
+positions.
 
 ## Entities
 
 | Entity | |
 |---|---|
-| `sensor.<name>_rear_left` (and `rear_right`, `front_left`, `front_right`) | `off`, `0` (zone selected, not set yet), `1`-`9`, `residual_heat`, `obstructed`, `unknown`. Attributes: `level`, `residual_heat_bars`, the raw (unsmoothed) reading |
+| `sensor.<name>_rear_left` (and `rear_right`, `front_left`, `front_right`) | What the zone's display shows: `off`, `0` (zone selected, not set yet), `1`-`9`, `residual_heat`, `obstructed`, `unknown`. Attributes: `level`, `residual_heat_bars` (1-3, counting down as the zone cools), the raw (unsmoothed) reading |
+| `binary_sensor.<name>_rear_left_occupied` (and the other zones) | Something (a pot, a pan) sits on the zone. Unavailable until there's a verdict. Attributes: `ring_visibility`, `brightness`, the raw verdict of the latest frame |
 | `binary_sensor.<name>_on` | Any zone is heating. Attribute `zones` |
 | `binary_sensor.<name>_hot` | Any zone is heating or shows residual heat |
-| `binary_sensor.<name>_danger` | A zone is heating (level 1-9) with nothing on it (free, or occupancy unsure). Residual heat doesn't count. Attributes: `zones`, `reasons`, `levels`. Alert when it stays on for a few minutes |
-| `image.<name>_panel` | The panel as last seen, with the zone windows and readings drawn in (diagnostic, for calibration) |
-| `binary_sensor.<name>_rear_left_occupied` (and the other zones) | Something (a pot, a pan) sits on the zone. Attributes: `ring_visibility`, `brightness`, the raw verdict of the latest frame |
+| `binary_sensor.<name>_danger` | A zone is heating (level 1-9) with nothing on it: free, or occupancy unsure (the safe side). Residual heat doesn't count. Attributes: `zones`, `reasons` (`free`/`unsure` per zone), `levels`. Turns on at once: alert when it stays on for a few minutes (see below) |
 | `binary_sensor.<name>_infrared` | The camera is in night vision, nothing can be read (diagnostic) |
-| `image.<name>_zones` | The stove with the zone rings (orange: occupied, blue: free, grey: unsure) and the bare glass reference (yellow) |
+| `image.<name>_panel` | The control panel as last seen, with the digit windows and readings drawn in (diagnostic, for calibration) |
+| `image.<name>_zones` | The stove with the zone rings (orange: occupied, blue: free, grey: unsure) and the bare glass reference (yellow box) (diagnostic, for calibration) |
+
+### Alerting on danger
+
+`danger` turns on as soon as a zone heats with nothing on it, which also
+happens for the minute between switching a zone on and putting the pot down.
+Alert on it staying on:
+
+```yaml
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.stove_danger
+    to: "on"
+    for:
+      minutes: 5
+actions:
+  - action: notify.mobile_app_phone
+    data:
+      title: Stove on, nothing on it
+      message: >-
+        {{ state_attr('binary_sensor.stove_danger', 'levels') }}
+```
 
 ## Card
-
-![Stove Vision card](docs/card.png)
-
-![Stove Vision card, compact](docs/card-compact.png)
-
-*(Example states: three zones on, two pots, one zone with residual heat.)*
 
 The integration ships a Lovelace card and registers it as a dashboard
 resource itself: nothing to install or add.
@@ -47,49 +63,94 @@ resource itself: nothing to install or add.
 type: custom:stove-vision-card
 ```
 
+Three variants:
+
+**`full`** (default): the whole stove. Heating zones glow and pulse with
+their level (arc around the zone), residual heat shows as embers, pots sit
+on occupied zones (with steam when the zone is on), the control panel shows
+the digits. Tap a zone, digit or pot for its entity.
+
+![Stove Vision card](docs/card.png)
+
+**`compact`**: one row with a mini stove, the status and zone pills, for
+popups and small spaces.
+
+![Stove Vision card, compact](docs/card-compact.png)
+
+**`tile`**: looks like a native/mushroom tile and follows their theme
+variables. The badge is a tiny stove showing the zones' state, the second
+line the levels and pots. Tap for the details, tap the badge for the camera
+view.
+
+![Stove Vision card, tile](docs/card-tile.png)
+
+All variants show danger right away: a pulsing red ring and a chip on the
+full card, a red status and an outlined pill on the compact one, a red badge
+and "without pot" on the tile.
+
+![Stove Vision card, danger](docs/card-danger.png)
+
+*(Screenshots: example states.)*
+
 | Option | Default | |
 |---|---|---|
 | `device` | first Stove Vision device | Which stove |
 | `title` | device name | |
-| `variant` | `full` | `full`: the whole stove. `compact`: one row (mini stove, status, zone pills), for popups and small spaces. `tile`: looks like a native/mushroom tile (half width, a badge with the zones' state, levels and pots as secondary; tap the badge for the camera view in its more-info dialog) |
+| `variant` | `full` | `full`, `compact` or `tile`, see above |
 | `show_header` | `true` | Full: title, chips and camera button |
 | `show_chips` | `true` | Status chips (full) / zone pills (compact) |
 | `show_panel` | `true` | Full: the control panel digits |
+| `show_camera_button` | `true` | The annotated camera crops: flip to them (full), unfold them (compact), open them in their more-info dialog from the badge (tile) |
 | `hold_action` | none | Long press, like native cards: `navigate` (`navigation_path`), `more-info` (`entity`), `url` (`url_path`), `none` |
-| `show_camera_button` | `true` | Camera button: flips the full card to the annotated camera crops, unfolds them under the compact card |
 
-All variants show danger right away (a zone heating with nothing on it, from `binary_sensor.<name>_danger`): a pulsing red ring and a chip on the full card, a red status and outlined pill on the compact one, a red badge and "without pot" on the tile. All options are in the card editor as well. Heating zones glow and pulse
-with their level (arc around the zone), residual heat shows as embers, pots
-sit on occupied zones (with steam when the zone is on), the control panel
-shows the digits. Tap a zone, digit or pot for its entity.
-
-## Night vision
-
-In infrared the camera sees through the black glass (the heating coils, the
-control board) and nothing can be read. Such frames are detected
-(`binary_sensor.<name>_infrared`) and reported as unknown. Better: set the
-camera to colour mode permanently; the displays are lit anyway.
+All options are in the card editor as well.
 
 ## Setup
 
-1. Point a camera at the stove so the control panel is readable. Use the full
-   resolution stream: a digit is only about 7x12 pixels at 1080p. Camera
-   entities usually only hand out a reduced snapshot; a go2rtc
-   `api/frame.jpeg?src=<stream>` URL gives a full frame.
-2. Add the integration with that URL (or a camera entity) and the rotation
+1. Point a camera at the stove so the control panel is readable. Use the
+   full resolution stream: a digit is only about 7x12 pixels at 1080p.
+   Camera entities usually only hand out a reduced snapshot; a go2rtc
+   `api/frame.jpeg?src=<stream>` URL gives a full frame. (The default URL is
+   the Frigate add-on's go2rtc on the author's setup; replace it.)
+2. Set the camera's day/night mode to colour, not auto. In infrared the
+   camera sees through the black glass and nothing can be read (see
+   *Night vision*); the displays light themselves anyway.
+3. Add the integration with that URL (or a camera entity) and the rotation
    that makes the panel upright.
-3. Turn all zones on at different levels, open the *Panel* image and adjust
-   the zone positions in the options until each box sits on its digit.
+4. Calibrate in the options: turn all zones on at different levels, open
+   the *Panel* image and move each digit window onto its digit; then look at
+   the *Zones* image and fit the rings and the bare glass reference.
+
+### Options
+
+| Option | Default | |
+|---|---|---|
+| Snapshot URL / camera | | Where frames come from (the camera entity wins when both are set) |
+| Rotation | `0` | Clockwise degrees that make the panel upright |
+| Poll interval | `10` s | Each poll fetches and decodes one frame |
+| Smoothing | `3` frames | Frames each zone's state is voted over |
+| Zone positions | KM 6203 | `x,y` centre of each zone's digit, in pixels of the (rotated) frame |
+| Zone rings | KM 6203 | `cx,cy,rx,ry` ellipse of each zone's printed ring; dual zones: two, separated by `;` |
+| Bare glass reference | KM 6203 | `x0,y0,x1,y1` of a patch of empty glass between the zones |
 
 ## How it reads the display
 
 The LEDs clip the camera sensor: segment cores come out white, only their
 edges keep the display colour. A zone counts as lit when its window has
-enough tinted pixels; white glare from cabinet lights and orange pot handles
-don't qualify. Under some light the camera shifts its white balance and the
-dimmer residual heat bars lose their tint; those are then found by contrast
-and shape (short wide strokes, dark gaps). Segments are then sampled on brightness, after undoing the
-italic slant of the digits, and matched against the seven-segment patterns.
+enough tinted pixels; white glare from cabinet lights, food and orange pot
+handles don't qualify. Dim displays (a single residual heat bar, a kitchen
+light changing the exposure) get a second pass with a weaker tint.
+
+Segments are then sampled on brightness, after undoing the italic slant of
+the digits, and matched against the seven-segment patterns (best match when
+a segment is smudged). Residual heat is 1-3 stacked bars with dark gaps; a
+`3` has the same three bars, but joined by vertical strokes that light
+every row between them.
+
+Under some light the camera shifts its white balance and the residual heat
+bars lose their tint; those are then found by contrast and shape. Bright
+blobs touching the window's edges are ignored there: the printed zone key
+symbols under the displays reflect light too.
 
 Single frames are noisy: the displays are multiplexed, so a frame often
 catches a lit display dark, while a lit display never appears out of
@@ -99,25 +160,39 @@ don't vote. Expect a change to show up within a few polls.
 
 ## How it sees pots
 
-Each zone has a printed ring on the glass. On bare glass the ring shows as a
-thin line brighter than the glass on either side; a pot or pan on the zone
-hides it. And the inside of the zone is compared to a patch of bare glass
-between the zones: a metal pot, a pan rim or a hand is much brighter.
+Two cues per zone:
 
-The ring only shows by reflecting room light, so a person standing at the
-stove can shadow the front rings for a minute. Hence:
+- **The printed ring.** On bare glass it shows as a thin line brighter than
+  the glass on either side; a pot or pan on the zone hides it.
+- **Brightness against bare glass.** The inside of the zone is compared to
+  the bare glass reference (a patch of empty glass between the zones, so the
+  comparison holds whatever the light): a metal pot, a pan rim or a hand is
+  much brighter (pots measured about +100, empty zones stayed below +45;
+  the threshold is +65). Only the green channel is used: a heating zone
+  glows red/orange and must not look like a pot.
+
+The ring only shows by reflecting room light. So:
 
 - something bright on the zone, or the ring clearly visible again, switches
   the sensor after 2 frames,
-- a hidden ring alone (a dark pan) needs 6 frames, and only counts when the
-  ring is almost entirely gone (a shadow leaves part of it),
+- a hidden ring alone (a dark pan) needs 6 frames, has to be almost entirely
+  gone (a person at the stove shadows the front rings, but only partly), and
+  only counts when another zone's ring is clearly visible in the same frame
+  (lights off or glare: no evidence),
 - anything in between keeps the previous state.
 
 A pot smaller than the ring doesn't hide it; it is then only found by being
-brighter than the glass. Dual zones have both rings checked.
+brighter than the glass, which in a dark kitchen it may not be. Dual zones
+have both rings checked. If something big covers the bare glass reference,
+move it in the options.
 
-Set the rings in the options (`cx,cy,rx,ry`, `;` between the two rings of a
-dual zone) by looking at the *Zones* image.
+## Night vision
+
+In infrared the camera sees through the black glass (the heating coils, the
+control board) and nothing can be read. Such frames are detected
+(`binary_sensor.<name>_infrared`): the zone sensors report `unknown`, `on`,
+`hot` and `danger` go unknown, and the occupancy starts over instead of
+keeping a stale verdict.
 
 ## Tests
 
@@ -125,7 +200,10 @@ dual zone) by looking at the *Zones* image.
 python -m pytest tests
 ```
 
-The fixtures are crops of the control panel and the stove glass only.
+The fixtures are crops of the control panel and the stove glass only, from
+real frames: levels, residual heat (tinted, dim, untinted, with a stray
+pixel), glare off the zone key symbols, empty and occupied zones, a shadow,
+a dark kitchen.
 
 ## License
 
