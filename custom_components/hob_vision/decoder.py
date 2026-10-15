@@ -80,6 +80,8 @@ class DecoderSettings:
     min_lit: int = 4
     tint: int = 25
     weak_tint: int = 15
+    contrast: int = 70
+    contrast_skip_bottom: int = 3
     slant: float = 0.25
     threshold: float = 0.5
     min_score: float = 0.7
@@ -140,6 +142,33 @@ def _residual_heat_bars(
     return len(groups)
 
 
+def _contrast_bars(px, w: int, h: int, s: DecoderSettings) -> int | None:
+    """Residual heat bars found by brightness alone.
+
+    Under some light the camera shifts its white balance and the (dimmer)
+    residual heat bars come out white, without any tint. Find them as short,
+    wide strokes much brighter than the rest of the window. The bottom rows
+    are left out: the printed zone key sits just below the display.
+    """
+    rows = h - s.contrast_skip_bottom
+    value = [[sum(px[x, y][:3]) / 3 for x in range(w)] for y in range(rows)]
+    background = sorted(v for row in value for v in row)[len(value) * w // 2]
+    strong = [[v > background + s.contrast for v in row] for row in value]
+    faint = [[v > background + s.contrast / 2 for v in row] for row in value]
+    if sum(map(sum, strong)) < s.min_lit:
+        return None
+    bars = _residual_heat_bars(strong, faint, w, rows)
+    if bars is None:
+        return None
+    # Strokes must look like bars: wide, and nothing else bright around
+    cols = [x for x in range(w) if any(strong[y][x] for y in range(rows))]
+    if not 3 <= max(cols) - min(cols) + 1 <= 10:
+        return None
+    if any(strong[0]) or any(strong[y][0] or strong[y][w - 1] for y in range(rows)):
+        return None
+    return bars
+
+
 def read_zone(
     img: Image.Image, zone: Zone, settings: DecoderSettings | None = None
 ) -> ZoneReading:
@@ -177,8 +206,17 @@ def read_zone(
     if lit < s.min_lit:
         # Dark display. If the window is mostly bright, something (a pot, a
         # hand, glare) is covering it and we can't tell.
-        state = STATE_OBSTRUCTED if bright > w * h * 0.4 else STATE_OFF
-        return ZoneReading(state, lit_pixels=lit, bright_pixels=bright)
+        if bright > w * h * 0.4:
+            return ZoneReading(STATE_OBSTRUCTED, lit_pixels=lit, bright_pixels=bright)
+        bars = _contrast_bars(px, w, h, s)
+        if bars is not None:
+            return ZoneReading(
+                STATE_RESIDUAL_HEAT,
+                lit_pixels=lit,
+                bright_pixels=bright,
+                heat_bars=bars,
+            )
+        return ZoneReading(STATE_OFF, lit_pixels=lit, bright_pixels=bright)
 
     bars = _residual_heat_bars(tinted, glow, w, h)
     if bars is not None:
@@ -271,21 +309,23 @@ def read_frame(
 
 
 def smooth(history: Sequence[ZoneReading]) -> ZoneReading:
-    """Majority vote over the last few readings of a zone.
+    """Vote over the last few readings of a zone.
 
-    The displays are multiplexed, so a single frame sometimes catches a digit
-    dark; a pot or a hand hides it for a while. Readings without information
-    don't vote, ties go to the most recent reading.
+    A lit display never shows up out of nothing, but a frame often catches a
+    lit one dark (the displays are multiplexed, the camera exposes between
+    pulses). So a zone only counts as off when all recent frames say so;
+    otherwise the most common lit reading wins, ties to the most recent.
+    Readings without information (covered, unreadable) don't vote.
     """
     informative = [r for r in history if r.state not in NO_INFO]
     if not informative:
         return history[-1]
-    counts = Counter(r.state for r in informative)
+    lit = [r for r in informative if r.state != STATE_OFF]
+    if not lit:
+        return informative[-1]
+    counts = Counter(r.state for r in lit)
     top = max(counts.values())
-    for reading in reversed(informative):
-        if counts[reading.state] == top:
-            return reading
-    return informative[-1]  # unreachable
+    return next(r for r in reversed(lit) if counts[r.state] == top)
 
 
 def annotate(

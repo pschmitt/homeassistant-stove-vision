@@ -33,12 +33,16 @@ pattern (stacked horizontal bars).
 The LEDs clip the camera sensor: segment cores come out white, only their
 edges keep the display colour. A zone counts as lit when its window has
 enough tinted pixels; white glare from cabinet lights and orange pot handles
-don't qualify. Segments are then sampled on brightness, after undoing the
+don't qualify. Under some light the camera shifts its white balance and the
+dimmer residual heat bars lose their tint; those are then found by contrast
+and shape (short wide strokes, dark gaps). Segments are then sampled on brightness, after undoing the
 italic slant of the digits, and matched against the seven-segment patterns.
 
-Single frames are noisy (the displays are multiplexed, hands and pots get in
-the way), so each zone reports a majority vote over the last few frames.
-Frames where a zone is covered don't vote.
+Single frames are noisy: the displays are multiplexed, so a frame often
+catches a lit display dark, while a lit display never appears out of
+nothing. So a zone only reads `off` when all of the last few frames agree;
+otherwise the most common lit reading wins. Frames where a zone is covered
+don't vote. Expect a change to show up within a few polls.
 
 ## Tests
 

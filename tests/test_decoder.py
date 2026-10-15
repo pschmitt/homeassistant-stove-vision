@@ -57,6 +57,14 @@ def test_residual_heat_dim() -> None:
     assert [readings[z.key].heat_bars for z in ZONES] == [2, 1, 1, 1]
 
 
+def test_residual_heat_untinted() -> None:
+    """Blue white balance: the single bar comes out white, found by contrast."""
+    readings = _read("residual_heat_untinted_0_1_0_0.png")
+    states = [readings[z.key].state for z in ZONES]
+    assert states == ["off", "residual_heat", "off", "off"]
+    assert readings["rear_right"].heat_bars == 1
+
+
 def test_rotation_roundtrip() -> None:
     img = decoder.load_frame((FIXTURES / "levels_1_2_3_4.png").read_bytes())
     flipped = img.rotate(180)
@@ -78,6 +86,13 @@ def test_smooth_drops_flicker() -> None:
 
 def test_smooth_follows_change() -> None:
     assert decoder.smooth([_r("3"), _r("4"), _r("4")]).state == "4"
+
+
+def test_smooth_off_needs_all_frames() -> None:
+    assert decoder.smooth([_r("residual_heat"), _r("off"), _r("off")]).state == (
+        "residual_heat"
+    )
+    assert decoder.smooth([_r("off"), _r("off"), _r("off")]).state == "off"
 
 
 def test_smooth_ignores_no_info() -> None:
