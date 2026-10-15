@@ -301,6 +301,23 @@ def load_frame(data: bytes, rotation: int = 0) -> Image.Image:
     return img
 
 
+def is_infrared(img: Image.Image, step: int = 16) -> bool:
+    """Night vision frame: no colour anywhere.
+
+    In IR the camera sees through the black glass (heating coils, the control
+    board) and nothing on the stove can be read.
+    """
+    small = img.reduce(step)
+    px = small.load()
+    total = count = 0
+    for y in range(small.height):
+        for x in range(small.width):
+            r, g, b = px[x, y][:3]
+            total += abs(r - g) + abs(g - b)
+            count += 1
+    return count > 0 and total / count < 3
+
+
 def read_frame(
     img: Image.Image, zones: Iterable[Zone], settings: DecoderSettings | None = None
 ) -> dict[str, ZoneReading]:

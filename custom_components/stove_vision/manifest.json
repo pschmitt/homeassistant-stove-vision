@@ -9,6 +9,8 @@
   ],
   "config_flow": true,
   "dependencies": [
+    "frontend",
+    "http",
     "image"
   ],
   "documentation": "https://github.com/pschmitt/homeassistant-stove-vision",
@@ -18,5 +20,5 @@
   "loggers": [
     "custom_components.stove_vision"
   ],
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

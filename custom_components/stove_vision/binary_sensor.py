@@ -11,6 +11,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -58,6 +59,7 @@ async def async_setup_entry(
                 for description in DESCRIPTIONS
             ),
             *(ZoneOccupancySensor(coordinator, zone) for zone in ZONES),
+            InfraredSensor(coordinator),
         ]
     )
 
@@ -88,7 +90,7 @@ class StoveBinarySensor(StoveVisionEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """Any zone matches."""
-        if self.coordinator.data is None:
+        if self.coordinator.data is None or self.coordinator.data.infrared:
             return None
         return bool(self._matching())
 
@@ -136,3 +138,21 @@ class ZoneOccupancySensor(StoveVisionEntity, BinarySensorEntity):
             "brightness": round(reading.brightness),
             "raw": {True: "occupied", False: "free", None: "unsure"}[reading.occupied],
         }
+
+
+class InfraredSensor(StoveVisionEntity, BinarySensorEntity):
+    """The camera is in night vision: nothing on the stove can be read."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_translation_key = "infrared"
+
+    def __init__(self, coordinator: StoveVisionCoordinator) -> None:
+        """Set up the sensor."""
+        super().__init__(coordinator, "infrared")
+
+    @property
+    def is_on(self) -> bool | None:
+        """Latest frame was an infrared one."""
+        if self.coordinator.data is None:
+            return None
+        return self.coordinator.data.infrared

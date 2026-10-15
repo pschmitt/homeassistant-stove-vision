@@ -52,6 +52,9 @@ class OccupancySettings:
     line_gap: int = 4
     # Fraction of ring points visible
     hidden_below: float = 0.12
+    # A hidden ring only counts when some other zone's ring is this visible in
+    # the same frame, i.e. the light is good enough to see rings at all
+    good_light: float = 0.85
     visible_above: float = 0.5
     # Inside of the zone vs the bare glass reference (0-255 brightness)
     bright_delta: float = 45.0
@@ -124,16 +127,24 @@ def read_occupancy(
     gray = img.convert("L")
     px = gray.load()
     glass = _box_median(px, glass_box)
+    areas = list(areas)
+    ring_visibility = {
+        area.key: [_ring_visibility(px, gray.size, ring, s) for ring in area.rings]
+        for area in areas
+    }
     readings = {}
     for area in areas:
-        visibility = min(
-            _ring_visibility(px, gray.size, ring, s) for ring in area.rings
+        visibility = min(ring_visibility[area.key])
+        good_light = any(
+            max(values) >= s.good_light
+            for key, values in ring_visibility.items()
+            if key != area.key
         )
         # The outer ring bounds the zone
         outer = max(area.rings, key=lambda ring: ring.rx * ring.ry)
         brightness = _interior_median(px, gray.size, outer, s) - glass
         bright = brightness > s.bright_delta
-        if bright or visibility < s.hidden_below:
+        if bright or (good_light and visibility < s.hidden_below):
             occupied: bool | None = True
         elif visibility >= s.visible_above:
             occupied = False
@@ -155,6 +166,10 @@ class OccupancyTracker:
         """Set the number of agreeing frames needed to switch."""
         self.fast = fast
         self.slow = slow
+        self.reset()
+
+    def reset(self) -> None:
+        """Forget everything (e.g. after frames that couldn't be read)."""
         self.state: bool | None = None
         self.last: OccupancyReading | None = None
         self._pending: bool | None = None

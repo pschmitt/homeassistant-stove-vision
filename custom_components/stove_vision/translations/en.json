@@ -168,6 +168,9 @@
       },
       "front_right_occupied": {
         "name": "Front right occupied"
+      },
+      "infrared": {
+        "name": "Infrared"
       }
     },
     "image": {

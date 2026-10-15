@@ -39,10 +39,12 @@ from .const import (
     ZONES,
 )
 from .decoder import (
+    STATE_UNKNOWN,
     DecoderSettings,
     Zone,
     ZoneReading,
     annotate,
+    is_infrared,
     load_frame,
     read_frame,
     smooth,
@@ -163,6 +165,7 @@ class StoveData:
     zones: dict[str, ZoneState]
     occupancy: dict[str, ZoneOccupancy]
     frame_time: datetime
+    infrared: bool = False
 
 
 class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
@@ -201,9 +204,24 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
 
     def _decode(
         self, frame: bytes
-    ) -> tuple[dict[str, ZoneReading], dict[str, OccupancyReading], bytes, bytes]:
-        """Decode a frame (runs in the executor: Pillow is CPU work)."""
+    ) -> tuple[
+        dict[str, ZoneReading] | None, dict[str, OccupancyReading] | None, bytes, bytes
+    ]:
+        """Decode a frame (runs in the executor: Pillow is CPU work).
+
+        Readings are None for an infrared frame.
+        """
         img = load_frame(frame, self.rotation)
+        if is_infrared(img):
+            for tracker in self._trackers.values():
+                tracker.reset()
+            unknown = {key: None for key in self._trackers}
+            return (
+                None,
+                None,
+                annotate(img, self.zones, {}, self.settings),
+                annotate_stove(img, self.areas, self.glass_box, unknown),
+            )
         readings = read_frame(img, self.zones, self.settings)
         occupancy = read_occupancy(img, self.areas, self.glass_box)
         states = {
@@ -245,6 +263,18 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
 
         now = dt_util.utcnow()
         self.panel_image, self.stove_image, self.image_time = panel, stove, now
+        if readings is None or occupancy is None:
+            # Night vision: nothing readable, and nothing to carry over
+            for history in self._history.values():
+                history.clear()
+            unknown = ZoneReading(STATE_UNKNOWN)
+            no_evidence = OccupancyReading(None, 0.0, 0.0, False)
+            return StoveData(
+                {key: ZoneState(unknown, unknown) for key in self._history},
+                {key: ZoneOccupancy(None, no_evidence) for key in self._trackers},
+                now,
+                infrared=True,
+            )
         zones = {}
         for key, reading in readings.items():
             history = self._history[key]

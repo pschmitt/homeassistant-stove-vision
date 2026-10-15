@@ -48,6 +48,14 @@ def test_occupancy(fixture: str, expected: list[bool]) -> None:
     assert [readings[a.key].occupied for a in AREAS] == expected
 
 
+def test_dark_kitchen_is_unsure() -> None:
+    """Lights off: some rings vanish. Without good light that's no evidence."""
+    readings = _read("stove_dark_pot_rear_right.png")
+    assert readings["front_right"].occupied is None
+    assert readings["rear_right"].occupied is not False
+    assert readings["rear_left"].occupied is False
+
+
 def test_pot_is_bright() -> None:
     assert _read("stove_pot_rear_right.png")["rear_right"].bright
 

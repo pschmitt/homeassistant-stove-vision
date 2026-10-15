@@ -18,7 +18,32 @@ pattern (stacked horizontal bars).
 | `binary_sensor.<name>_hot` | Any zone is heating or shows residual heat |
 | `image.<name>_panel` | The panel as last seen, with the zone windows and readings drawn in (diagnostic, for calibration) |
 | `binary_sensor.<name>_rear_left_occupied` (and the other zones) | Something (a pot, a pan) sits on the zone. Attributes: `ring_visibility`, `brightness`, the raw verdict of the latest frame |
+| `binary_sensor.<name>_infrared` | The camera is in night vision, nothing can be read (diagnostic) |
 | `image.<name>_zones` | The stove with the zone rings (orange: occupied, blue: free, grey: unsure) and the bare glass reference (yellow) |
+
+## Card
+
+The integration ships a Lovelace card and loads it itself (no resource to
+add):
+
+```yaml
+type: custom:stove-vision-card
+# device: <device id>   # optional, first Stove Vision device otherwise
+# title: Kitchen        # optional
+```
+
+It draws the stove: heating zones glow and pulse with their level (arc
+around the zone), residual heat shows as embers, pots sit on occupied zones
+(with steam when the zone is on), the control panel shows the digits. Tap a
+zone, digit or pot for its entity; the camera button flips to the annotated
+camera crops.
+
+## Night vision
+
+In infrared the camera sees through the black glass (the heating coils, the
+control board) and nothing can be read. Such frames are detected
+(`binary_sensor.<name>_infrared`) and reported as unknown. Better: set the
+camera to colour mode permanently; the displays are lit anyway.
 
 ## Setup
 

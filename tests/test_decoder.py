@@ -78,6 +78,12 @@ def test_rotation_roundtrip() -> None:
     assert [readings[z.key].state for z in ZONES] == ["1", "2", "3", "4"]
 
 
+def test_infrared_detection() -> None:
+    colour = decoder.load_frame((FIXTURES / "levels_1_2_3_4.png").read_bytes())
+    assert not decoder.is_infrared(colour)
+    assert decoder.is_infrared(colour.convert("L").convert("RGB"))
+
+
 def _r(state: str) -> decoder.ZoneReading:
     return decoder.ZoneReading(state)
 
