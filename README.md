@@ -55,7 +55,7 @@ type: custom:stove-vision-card
 | `show_header` | `true` | Full: title, chips and camera button |
 | `show_chips` | `true` | Status chips (full) / zone pills (compact) |
 | `show_panel` | `true` | Full: the control panel digits |
-| `show_camera_button` | `true` | Full: flip to the annotated camera crops |
+| `show_camera_button` | `true` | Camera button: flips the full card to the annotated camera crops, unfolds them under the compact card |
 
 All options are in the card editor as well. Heating zones glow and pulse
 with their level (arc around the zone), residual heat shows as embers, pots

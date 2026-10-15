@@ -9,7 +9,8 @@
  *   show_header: true          # full: title, chips and camera button
  *   show_chips: true           # status chips (full) / zone pills (compact)
  *   show_panel: true           # full: control panel digits
- *   show_camera_button: true   # full: flip to the annotated camera crops
+ *   show_camera_button: true   # flip to (full) / unfold (compact) the
+ *                              # annotated camera crops
  *
  * Part of the stove_vision integration, which serves it and loads it in the
  * frontend: no resource to add. GPL-3.0, see LICENSE.
@@ -145,7 +146,7 @@ class StoveVisionCard extends HTMLElement {
 
   getGridOptions() {
     return this._compact
-      ? { columns: 12, min_columns: 6, rows: 2, min_rows: 2 }
+      ? { columns: 12, min_columns: 6, rows: "auto", min_rows: 2 }
       : { columns: 12, min_columns: 6, rows: "auto" };
   }
 
@@ -300,15 +301,28 @@ class StoveVisionCard extends HTMLElement {
       })
       .join("");
 
+    const cameraButton =
+      model.images.zones && this._config.show_camera_button
+        ? `<button class="toggle" data-action="camera" title="Camera view">${this._showCamera ? "✕" : "📷"}</button>`
+        : "";
+    const camera =
+      this._showCamera && model.images.zones
+        ? `<div class="camera compact-camera"><img src="${model.images.zones}" alt="Zones"></div>`
+        : "";
+
     this.shadowRoot.innerHTML = `
       <style>${STYLE}</style>
-      <ha-card class="compact" data-entity="${model.ids.on || ""}">
-        <div class="mini">${this._svg(model, false, true)}</div>
-        <div class="info">
-          <div class="title">${model.title}</div>
-          <div class="status ${tone}">${status}</div>
-          ${this._config.show_chips && pills ? `<div class="pills">${pills}</div>` : ""}
+      <ha-card class="compact ${camera ? "open" : ""}">
+        <div class="row" data-entity="${model.ids.on || ""}">
+          <div class="mini">${this._svg(model, false, true)}</div>
+          <div class="info">
+            <div class="title">${model.title}</div>
+            <div class="status ${tone}">${status}</div>
+            ${this._config.show_chips && pills ? `<div class="pills">${pills}</div>` : ""}
+          </div>
+          ${cameraButton}
         </div>
+        ${camera}
       </ha-card>`;
   }
 
@@ -468,6 +482,13 @@ class StoveVisionCard extends HTMLElement {
   }
 
   _onClick(event) {
+    const camera = event.target.closest("[data-action]");
+    if (camera && camera.dataset.action === "camera") {
+      this._showCamera = !this._showCamera;
+      this._signature = undefined;
+      this._render();
+      return;
+    }
     if (this._compact) {
       const target = event.target.closest("[data-entity]");
       if (target && target.dataset.entity) {
@@ -475,13 +496,6 @@ class StoveVisionCard extends HTMLElement {
         moreInfo.detail = { entityId: target.dataset.entity };
         this.dispatchEvent(moreInfo);
       }
-      return;
-    }
-    const action = event.target.closest("[data-action]");
-    if (action && action.dataset.action === "camera") {
-      this._showCamera = !this._showCamera;
-      this._signature = undefined;
-      this._render();
       return;
     }
     const target = event.target.closest("[data-entity]");
@@ -559,10 +573,11 @@ const STYLE = `
   .overlay div:first-child { font-size: 2.4em; }
   .camera { display: grid; gap: 8px; padding: 4px 12px 14px; }
   ha-card.bare .stove { padding-top: 12px; }
-  ha-card.compact {
-    display: flex; align-items: center; gap: 14px; padding: 10px 14px; cursor: pointer;
-    height: 100%; box-sizing: border-box;
-  }
+  ha-card.compact { padding: 10px 14px; height: 100%; box-sizing: border-box; }
+  ha-card.compact.open { height: auto; }
+  .row { display: flex; align-items: center; gap: 14px; cursor: pointer; }
+  .row .info { flex: 1 1 auto; }
+  .compact-camera { padding: 10px 0 2px; }
   .mini { flex: 0 0 auto; width: 92px; }
   .mini svg { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35)); }
   .info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
