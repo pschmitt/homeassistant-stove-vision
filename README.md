@@ -30,6 +30,7 @@ positions.
 | `binary_sensor.<name>_hot` | Any zone is heating or shows residual heat |
 | `binary_sensor.<name>_danger` | A zone is heating (level 1-9) with nothing on it: free, or occupancy unsure (the safe side). Residual heat doesn't count. Attributes: `zones`, `reasons` (`free`/`unsure` per zone), `levels`. Turns on at once: alert when it stays on for a few minutes (see below) |
 | `binary_sensor.<name>_infrared` | The camera is in night vision, nothing can be read (diagnostic) |
+| `button.<name>_refresh` | Fetch and decode a frame now instead of at the next poll (diagnostic). Smoothing still applies: one frame alone rarely flips a state |
 | `image.<name>_panel` | The control panel as last seen, with the digit windows and readings drawn in (diagnostic, for calibration) |
 | `image.<name>_zones` | The stove with the zone rings (orange: occupied, blue: free, grey: unsure) and the bare glass reference (yellow box) (diagnostic, for calibration) |
 

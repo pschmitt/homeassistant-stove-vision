@@ -179,6 +179,11 @@
       "zones": {
         "name": "Zones"
       }
+    },
+    "button": {
+      "refresh": {
+        "name": "Refresh"
+      }
     }
   }
 }
