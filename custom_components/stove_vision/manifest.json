@@ -9,6 +9,7 @@
   ],
   "config_flow": true,
   "dependencies": [
+    "ffmpeg",
     "frontend",
     "http",
     "image",
@@ -21,5 +22,5 @@
   "loggers": [
     "custom_components.stove_vision"
   ],
-  "version": "0.2.0"
+  "version": "0.3.0"
 }

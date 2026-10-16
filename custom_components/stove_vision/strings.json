@@ -8,12 +8,14 @@
           "name": "Name",
           "snapshot_url": "Snapshot URL",
           "camera_entity": "Camera",
-          "rotation": "Rotation (degrees, clockwise)"
+          "rotation": "Rotation (degrees, clockwise)",
+          "camera_stream": "Read the camera's stream"
         },
         "data_description": {
           "snapshot_url": "URL returning a JPEG of the stove at full resolution, e.g. a go2rtc frame.jpeg endpoint",
-          "camera_entity": "Alternative to the URL: a camera entity (often only a reduced-resolution snapshot)",
-          "rotation": "Turn the frame so the control panel is upright"
+          "camera_entity": "Alternative to the URL: a camera entity. With 'Read the camera's stream' on, frames come from its stream at full resolution",
+          "rotation": "Turn the frame so the control panel is upright",
+          "camera_stream": "With a camera: take one full-resolution frame from its stream (via ffmpeg) instead of its snapshot, which many cameras scale down. Falls back to the snapshot."
         }
       }
     },
@@ -44,18 +46,20 @@
           "rings_rear_right": "Rear right zone rings",
           "rings_front_left": "Front left zone rings",
           "rings_front_right": "Front right zone rings",
-          "glass_box": "Bare glass reference"
+          "glass_box": "Bare glass reference",
+          "camera_stream": "Read the camera's stream"
         },
         "data_description": {
           "snapshot_url": "URL returning a JPEG of the stove at full resolution, e.g. a go2rtc frame.jpeg endpoint",
-          "camera_entity": "Alternative to the URL: a camera entity (often only a reduced-resolution snapshot)",
+          "camera_entity": "Alternative to the URL: a camera entity. With 'Read the camera's stream' on, frames come from its stream at full resolution",
           "rotation": "Turn the frame so the control panel is upright",
           "smoothing": "Majority vote over this many frames; hides display flicker and brief obstructions",
           "glass_box": "x0,y0,x1,y1 of a patch of bare glass between the zones (yellow box in the Zones image)",
           "rings_rear_left": "Printed ring(s) around the zone as cx,cy,rx,ry; dual zones: two rings separated by ;",
           "rings_rear_right": "Printed ring(s) around the zone as cx,cy,rx,ry; dual zones: two rings separated by ;",
           "rings_front_left": "Printed ring(s) around the zone as cx,cy,rx,ry; dual zones: two rings separated by ;",
-          "rings_front_right": "Printed ring(s) around the zone as cx,cy,rx,ry; dual zones: two rings separated by ;"
+          "rings_front_right": "Printed ring(s) around the zone as cx,cy,rx,ry; dual zones: two rings separated by ;",
+          "camera_stream": "With a camera: take one full-resolution frame from its stream (via ffmpeg) instead of its snapshot, which many cameras scale down. Falls back to the snapshot."
         }
       }
     },

@@ -14,6 +14,7 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_CAMERA_ENTITY,
+    CONF_CAMERA_STREAM,
     CONF_GLASS_BOX,
     CONF_RINGS_PREFIX,
     CONF_ROTATION,
@@ -21,6 +22,7 @@ from .const import (
     CONF_SMOOTHING,
     CONF_SNAPSHOT_URL,
     CONF_ZONE_PREFIX,
+    DEFAULT_CAMERA_STREAM,
     DEFAULT_GLASS_BOX,
     DEFAULT_NAME,
     DEFAULT_ROTATION,
@@ -50,6 +52,10 @@ def _source_schema(defaults: dict[str, Any]) -> dict[vol.Marker, Any]:
             CONF_CAMERA_ENTITY,
             description={"suggested_value": defaults.get(CONF_CAMERA_ENTITY)},
         ): selector.EntitySelector(selector.EntitySelectorConfig(domain="camera")),
+        vol.Required(
+            CONF_CAMERA_STREAM,
+            default=defaults.get(CONF_CAMERA_STREAM, DEFAULT_CAMERA_STREAM),
+        ): selector.BooleanSelector(),
         vol.Required(
             CONF_ROTATION, default=str(defaults.get(CONF_ROTATION, DEFAULT_ROTATION))
         ): selector.SelectSelector(

@@ -9,6 +9,7 @@ PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.IMAGE, Platform.S
 
 CONF_SNAPSHOT_URL = "snapshot_url"
 CONF_CAMERA_ENTITY = "camera_entity"
+CONF_CAMERA_STREAM = "camera_stream"
 CONF_ROTATION = "rotation"
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_SMOOTHING = "smoothing"
@@ -24,6 +25,9 @@ DEFAULT_SNAPSHOT_URL = (
     "http://ccab4aaf-frigate:1984/api/frame.jpeg?src=magicam_main_rtsp"
 )
 DEFAULT_ROTATION = 0
+# Read a frame from the camera entity's stream (full resolution) rather than
+# its snapshot, which many cameras (e.g. behind a Reolink Home Hub) scale down
+DEFAULT_CAMERA_STREAM = True
 DEFAULT_SCAN_INTERVAL = 10
 DEFAULT_SMOOTHING = 3
 # Digit centres in a 1080p frame of the Miele panel this was calibrated on

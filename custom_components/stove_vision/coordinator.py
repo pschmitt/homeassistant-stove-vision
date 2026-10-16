@@ -19,6 +19,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_CAMERA_ENTITY,
+    CONF_CAMERA_STREAM,
     CONF_GLASS_BOX,
     CONF_RINGS_PREFIX,
     CONF_ROTATION,
@@ -28,6 +29,7 @@ from .const import (
     CONF_ZONE_PREFIX,
     DEFAULT_ROTATION,
     DEFAULT_SCAN_INTERVAL,
+    DEFAULT_CAMERA_STREAM,
     DEFAULT_GLASS_BOX,
     DEFAULT_SMOOTHING,
     DEFAULT_ZONE_POSITIONS,
@@ -112,11 +114,30 @@ def zones_from_options(options: dict[str, Any]) -> list[Zone]:
 
 
 async def async_fetch_frame(hass: HomeAssistant, config: dict[str, Any]) -> bytes:
-    """Fetch one frame from the snapshot URL or the camera entity."""
-    if camera_entity := config.get(CONF_CAMERA_ENTITY):
-        from homeassistant.components.camera import async_get_image  # noqa: PLC0415
+    """Fetch one frame from the snapshot URL or the camera entity.
 
-        image = await async_get_image(hass, camera_entity, timeout=FETCH_TIMEOUT)
+    For a camera entity, prefer one frame of its stream (decoded by HA's
+    ffmpeg, full resolution) over its snapshot; fall back to the snapshot
+    when the camera has no stream or the grab fails. The stream URL (with
+    credentials) stays inside Home Assistant.
+    """
+    if camera_entity := config.get(CONF_CAMERA_ENTITY):
+        from homeassistant.components import camera  # noqa: PLC0415
+
+        if config.get(CONF_CAMERA_STREAM, DEFAULT_CAMERA_STREAM):
+            from homeassistant.components.ffmpeg import (  # noqa: PLC0415
+                async_get_image as ffmpeg_get_image,
+            )
+
+            source = await camera.async_get_stream_source(hass, camera_entity)
+            if source:
+                frame = await ffmpeg_get_image(hass, source)
+                if frame:
+                    return frame
+                _LOGGER.debug(
+                    "No frame from %s's stream, using its snapshot", camera_entity
+                )
+        image = await camera.async_get_image(hass, camera_entity, timeout=FETCH_TIMEOUT)
         return image.content
     session = async_get_clientsession(hass)
     async with session.get(
