@@ -12,8 +12,9 @@ no cloud: it polls a frame every few seconds and decodes what it sees.
   displays, levels 1-9. It has no Miele@Home support (its Con@ctivity link
   only talks to a Miele range hood), hence the camera.
 - **Camera:** Reolink camera behind a Reolink Home Hub, mounted above the
-  stove, read at 1920x1080 through Frigate's go2rtc
-  (`api/frame.jpeg?src=<stream>`), day/night mode pinned to colour.
+  stove, read at 1920x1080 from its stream through the Reolink integration's
+  camera entity (*Read the camera's stream*), day/night mode pinned to
+  colour. The hub's snapshots are only 640x360.
 
 Nothing in it is Miele-specific except the residual heat pattern (stacked
 horizontal bars instead of an `H`) and the default positions; other cooktops
@@ -109,11 +110,15 @@ All options are in the card editor as well.
 
 ## Setup
 
-1. Point a camera at the stove so the control panel is readable. Use the
-   full resolution stream: a digit is only about 7x12 pixels at 1080p.
-   Camera entities usually only hand out a reduced snapshot; a go2rtc
-   `api/frame.jpeg?src=<stream>` URL gives a full frame. (The default URL is
-   the Frigate add-on's go2rtc on the author's setup; replace it.)
+1. Point a camera at the stove so the control panel is readable, at full
+   resolution: a digit is only about 7x12 pixels at 1080p. Easiest is the
+   camera's entity with *Read the camera's stream* on: Stove Vision then
+   takes one frame of its stream through Home Assistant's ffmpeg (the stream
+   URL stays inside HA). Many cameras only hand out reduced snapshots
+   (a Reolink Home Hub: 640x360, whatever size you ask for). Alternatively,
+   any URL that returns a full-resolution JPEG, e.g. a go2rtc
+   `api/frame.jpeg?src=<stream>` (the default URL is the Frigate add-on's
+   go2rtc on the author's setup; replace it).
 2. Set the camera's day/night mode to colour, not auto. In infrared the
    camera sees through the black glass and nothing can be read (see
    *Night vision*); the displays light themselves anyway.
@@ -128,6 +133,7 @@ All options are in the card editor as well.
 | Option | Default | |
 |---|---|---|
 | Snapshot URL / camera | | Where frames come from (the camera entity wins when both are set) |
+| Read the camera's stream | on | With a camera: one frame of its stream (full resolution, via HA's ffmpeg) instead of its snapshot; falls back to the snapshot. A poll takes a few seconds longer, as ffmpeg opens the stream each time |
 | Rotation | `0` | Clockwise degrees that make the panel upright |
 | Poll interval | `10` s | Each poll fetches and decodes one frame |
 | Smoothing | `3` frames | Frames each zone's state is voted over |
