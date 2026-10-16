@@ -136,6 +136,7 @@ class ZoneOccupancySensor(StoveVisionEntity, BinarySensorEntity):
         reading = self.coordinator.data.occupancy[self._zone].reading
         return {
             "ring_visibility": round(reading.ring_visibility, 2),
+            "ring_line": round(reading.ring_line, 2),
             "brightness": round(reading.brightness),
             "raw": {True: "occupied", False: "free", None: "unsure"}[reading.occupied],
         }

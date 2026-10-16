@@ -25,7 +25,7 @@ positions.
 | Entity | |
 |---|---|
 | `sensor.<name>_rear_left` (and `rear_right`, `front_left`, `front_right`) | What the zone's display shows: `off`, `0` (zone selected, not set yet), `1`-`9`, `residual_heat`, `obstructed`, `unknown`. Attributes: `level`, `residual_heat_bars` (1-3, counting down as the zone cools), the raw (unsmoothed) reading |
-| `binary_sensor.<name>_rear_left_occupied` (and the other zones) | Something (a pot, a pan) sits on the zone. Unavailable until there's a verdict. Attributes: `ring_visibility`, `brightness`, the raw verdict of the latest frame |
+| `binary_sensor.<name>_rear_left_occupied` (and the other zones) | Something (a pot, a pan) sits on the zone. Unavailable until there's a verdict. Attributes: `ring_visibility`, `ring_line`, `brightness`, the raw verdict of the latest frame |
 | `binary_sensor.<name>_on` | Any zone is heating. Attribute `zones` |
 | `binary_sensor.<name>_hot` | Any zone is heating or shows residual heat |
 | `binary_sensor.<name>_danger` | A zone is heating (level 1-9) with nothing on it: free, or occupancy unsure (the safe side). Residual heat doesn't count. Attributes: `zones`, `reasons` (`free`/`unsure` per zone), `levels`. Turns on at once: alert when it stays on for a few minutes (see below) |
@@ -178,9 +178,14 @@ The ring only shows by reflecting room light. So:
 - something bright on the zone, a ring entirely gone (a dark pan; a person
   at the stove only ever shadows part of a ring), or the ring clearly
   visible again switches the sensor after 2 frames,
-- a ring that's mostly but not entirely hidden needs 6 frames,
-- a hidden ring only counts when another zone's ring is clearly visible in
-  the same frame (lights off or glare: no evidence),
+- a ring that's mostly but not entirely hidden needs 6 frames, and only
+  counts when another zone's ring is clearly visible in the same frame
+  (lights off or glare: no evidence),
+- in flat light (daylight) no ring stands out clearly, so the line is also
+  traced point by point: where it's traceable almost all around the zone is
+  free; where there's no trace of it at all (fewer points than chance would
+  give: a pan's smooth bottom) the zone is covered, after 6 frames. An
+  unlit ring in a dark kitchen stays around chance: no evidence either way,
 - anything in between keeps the previous state.
 
 A pot smaller than the ring doesn't hide it; it is then only found by being
@@ -205,7 +210,7 @@ python -m pytest tests
 The fixtures are crops of the control panel and the stove glass only, from
 real frames: levels, residual heat (tinted, dim, untinted, with a stray
 pixel), glare off the zone key symbols, empty zones, a steel pot, a dark
-pan, a shadow, a dark kitchen.
+pan (evening and daylight), a shadow, a dark kitchen.
 
 ## License
 

@@ -55,6 +55,13 @@ class OccupancySettings:
     # A ring this hidden is covered, not shadowed (a person at the stove
     # never took a ring below 0.17): switch as fast as for something bright
     covered_below: float = 0.05
+    # No trace of the line at all (see _ring_visibility): covered, whatever
+    # the light. Empty rings never went below 0.28 in the recordings, a dark
+    # pan's were 0.02-0.16.
+    line_gone_below: float = 0.22
+    # The line traceable almost all around: free, even in light too flat for
+    # the ring to stand out clearly (covered rings stayed below 0.5)
+    line_present_above: float = 0.6
     # A hidden ring only counts when some other zone's ring is this visible in
     # the same frame, i.e. the light is good enough to see rings at all
     good_light: float = 0.85
@@ -75,11 +82,20 @@ class OccupancyReading:
     bright: bool
     # Clear evidence (bright, or the ring entirely gone): switch fast
     certain: bool = False
+    # Lowest share of ring points with any trace of the line
+    ring_line: float = 1.0
 
 
 def _ring_visibility(
     px, size: tuple[int, int], ring: Ring, s: OccupancySettings
-) -> float:
+) -> tuple[float, float]:
+    """Share of ring points where the line is clearly visible, and where it
+    is brighter than the glass beside it at all.
+
+    The second stays around chance (~0.3-0.4) even for a ring the room light
+    doesn't reach, but drops far below it under a pan: the smooth pan bottom
+    shows no line whatsoever.
+    """
     w, h = size
 
     def value(radius_offset: float, cos: float, sin: float) -> float:
@@ -87,14 +103,15 @@ def _ring_visibility(
         y = min(h - 1, max(0, int(ring.cy + (ring.ry + radius_offset) * sin)))
         return px[x, y]
 
-    visible = 0
+    visible = lit = 0
     for i in range(s.samples):
         angle = 2 * math.pi * i / s.samples
         cos, sin = math.cos(angle), math.sin(angle)
         line = max(value(k, cos, sin) for k in (-1, 0, 1))
         glass = max(value(-s.line_gap, cos, sin), value(s.line_gap, cos, sin))
         visible += line > glass * s.line_ratio + s.line_offset
-    return visible / s.samples
+        lit += line > glass
+    return visible / s.samples, lit / s.samples
 
 
 def _interior_median(
@@ -135,13 +152,16 @@ def read_occupancy(
     px = gray.load()
     glass = _box_median(px, glass_box)
     areas = list(areas)
-    ring_visibility = {
+    ring_stats = {
         area.key: [_ring_visibility(px, gray.size, ring, s) for ring in area.rings]
         for area in areas
     }
+    ring_visibility = {key: [v for v, _ in stats] for key, stats in ring_stats.items()}
     readings = {}
     for area in areas:
         visibility = min(ring_visibility[area.key])
+        ring_line = min(line for _, line in ring_stats[area.key])
+        gone = ring_line < s.line_gone_below
         good_light = any(
             max(values) >= s.good_light
             for key, values in ring_visibility.items()
@@ -151,15 +171,15 @@ def read_occupancy(
         outer = max(area.rings, key=lambda ring: ring.rx * ring.ry)
         brightness = _interior_median(px, gray.size, outer, s) - glass
         bright = brightness > s.bright_delta
-        if bright or (good_light and visibility < s.hidden_below):
+        if bright or gone or (good_light and visibility < s.hidden_below):
             occupied: bool | None = True
-        elif visibility >= s.visible_above:
+        elif visibility >= s.visible_above or ring_line >= s.line_present_above:
             occupied = False
         else:
             occupied = None
         certain = bright or (good_light and visibility < s.covered_below)
         readings[area.key] = OccupancyReading(
-            occupied, visibility, brightness, bright, certain
+            occupied, visibility, brightness, bright, certain, ring_line
         )
     return readings
 

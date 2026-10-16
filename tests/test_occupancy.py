@@ -41,6 +41,9 @@ def _read(name: str) -> dict[str, occupancy.OccupancyReading]:
         ("stove_empty.png", [False, False, False, False]),
         ("stove_empty_glare.png", [False, False, False, False]),
         ("stove_pot_rear_right.png", [False, True, False, False]),
+        # Morning daylight: every ring faint, no well-lit ring to compare with;
+        # the pan's ring has no trace of its line left, the empty ones do
+        ("stove_daylight_dark_pan_rear_right.png", [False, True, False, False]),
     ],
 )
 def test_occupancy(fixture: str, expected: list[bool]) -> None:
