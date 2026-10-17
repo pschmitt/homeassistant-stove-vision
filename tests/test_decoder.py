@@ -130,7 +130,7 @@ def test_timer_independent_two_digit_display() -> None:
     from PIL import Image
 
     image = Image.new("RGB", (1920, 1080), (70, 70, 70))
-    points = [(1, 543), (2, 545), (1, 550), (-1, 552), (-3, 550), (-3, 545), (0, 548)]
+    points = [(-1, 543), (2, 545), (1, 550), (-1, 552), (-3, 550), (-3, 545), (0, 548)]
     patterns = {glyph: pattern for pattern, glyph in decoder.SEGMENTS.items()}
     for cx, glyph in [(975, "1"), (987, "0")]:
         for (dx, y), on in zip(points, patterns[glyph], strict=True):

@@ -188,6 +188,7 @@ class StoveVisionCard extends HTMLElement {
     for (const key of ["on", "hot", "danger", "infrared", "refresh"]) {
       result[key] = find(key);
     }
+    result.timer = find("timer_remaining");
     // Annotated camera crops (the "zones" image is not the zone map above)
     result.images = { panel: find("panel"), zones: find("zones") };
     return result;
@@ -225,10 +226,17 @@ class StoveVisionCard extends HTMLElement {
       const image = this._state(ids.images[key]);
       if (image && image.attributes.entity_picture) images[key] = image.attributes.entity_picture;
     }
+    const timerState = this._state(ids.timer);
+    let timer = undefined;
+    if (timerState && timerState.state !== "unavailable" && timerState.state !== "unknown") {
+      const num = Number(timerState.state);
+      if (!isNaN(num)) timer = num;
+    }
     return {
       ids,
       zones,
       images,
+      timer,
       infrared: infrared ? infrared.state === "on" : false,
       danger: danger ? danger.state === "on" : false,
       // Zones heating with nothing (seen) on them; shown at once, unlike the
@@ -266,6 +274,9 @@ class StoveVisionCard extends HTMLElement {
     else chips.push(`<span class="chip off">Off</span>`);
     if (hot.length) chips.push(`<span class="chip hot">♨ ${hot.length} hot</span>`);
     if (pots.length) chips.push(`<span class="chip pot">🍲 ${pots.length} pot${pots.length > 1 ? "s" : ""}</span>`);
+    if (model.timer !== undefined && !model.infrared) {
+      chips.push(`<span class="chip timer" data-entity="${model.ids.timer || ""}">⏱ ${model.timer} min</span>`);
+    }
     const dangerous = zones.filter(([, zone]) => zone.danger);
     if (dangerous.length && !model.infrared) {
       const names = dangerous.map(([key]) => SHORT[key]).join(", ");
@@ -323,9 +334,10 @@ class StoveVisionCard extends HTMLElement {
     else if (hot.length) [status, tone] = ["Off, still hot", "hot"];
     else status = "Off";
     if (pots.length && !model.infrared) status += ` · ${pots.length} pot${pots.length > 1 ? "s" : ""}`;
+    if (model.timer !== undefined && !model.infrared) status += ` · ⏱ ${model.timer} min`;
 
     const short = { rear_left: "RL", rear_right: "RR", front_left: "FL", front_right: "FR" };
-    const pills = Object.entries(model.zones)
+    const pillsList = Object.entries(model.zones)
       .filter(([, zone]) => zone.level > 0 || zone.state === "residual_heat" || zone.occupied === "on")
       .map(([key, zone]) => {
         const value =
@@ -336,8 +348,13 @@ class StoveVisionCard extends HTMLElement {
         return `<span class="pill ${cls}" data-entity="${zone.ids.display || ""}">${short[key]}${
           value !== "" ? ` <b>${value}</b>` : ""
         }${zone.occupied === "on" ? " 🍲" : ""}</span>`;
-      })
-      .join("");
+      });
+    if (model.timer !== undefined && !model.infrared) {
+      pillsList.push(
+        `<span class="pill timer" data-entity="${model.ids.timer || ""}">⏱ <b>${model.timer} min</b></span>`
+      );
+    }
+    const pills = pillsList.join("");
 
     const cameraButton =
       model.images.zones && this._config.show_camera_button
@@ -403,6 +420,7 @@ class StoveVisionCard extends HTMLElement {
     } else if (hot.length) [secondary, tone] = ["Off, still hot", "hot"];
     else secondary = "Off";
     if (pots.length && !model.infrared) secondary += ` · ${pots.length} pot${pots.length > 1 ? "s" : ""}`;
+    if (model.timer !== undefined && !model.infrared) secondary += ` · ⏱ ${model.timer} min`;
 
     // The badge: a tiny stove with the zones' state, instead of a static icon
     const glyph = Object.entries(TILE_ZONES)
@@ -455,6 +473,23 @@ class StoveVisionCard extends HTMLElement {
                 </g>`;
       })
       .join("");
+    let timerDigits = "";
+    if (showPanel) {
+      const timerActive = model.timer !== undefined && !model.infrared;
+      const timerStr = timerActive ? String(model.timer).padStart(2, "0") : "";
+      const tensGlyph = timerActive ? GLYPHS[timerStr[0]] || "" : "";
+      const onesGlyph = timerActive ? GLYPHS[timerStr[1]] || "" : "";
+      timerDigits = `
+        <g class="digit timer" transform="translate(269 350)" data-entity="${model.ids.timer || ""}">
+          <rect x="-6" y="-5" width="46" height="34" rx="4" class="hit"/>
+          <g transform="scale(1.1)">
+            ${svgDigit(tensGlyph, timerActive)}
+          </g>
+          <g transform="translate(20 0) scale(1.1)">
+            ${svgDigit(onesGlyph, timerActive)}
+          </g>
+        </g>`;
+    }
     const scale = showPanel
       ? Array.from({ length: 10 }, (_, i) => `<text x="${206 + i * 18}" y="492">${i}</text>`).join("")
       : "";
@@ -508,7 +543,7 @@ class StoveVisionCard extends HTMLElement {
         ${zoneSvg}
         <rect x="0" y="0" width="580" height="500" rx="20" fill="url(#sheen)" pointer-events="none"/>
         ${mini ? "" : `<text x="290" y="300" class="brand">S T O V E · V I S I O N</text>`}
-        ${showPanel ? `<g class="panel" filter="url(#led)">${digits}</g>` : ""}
+        ${showPanel ? `<g class="panel" filter="url(#led)">${digits}${timerDigits}</g>` : ""}
         <g class="scale">${scale}</g>
       </svg>`;
   }
@@ -710,6 +745,7 @@ const STYLE = `
   .chip.pot { background: rgba(120, 160, 200, 0.18); color: #8fb4dc; }
   .chip.danger { background: rgba(244, 67, 54, 0.22); color: #ff5252; font-weight: 600; }
   .chip.ir { background: rgba(120, 110, 220, 0.2); color: #a99cff; }
+  .chip.timer { background: rgba(255, 154, 60, 0.18); color: #ff9a3c; }
   .toggle.refresh { font-size: 17px; line-height: 1; }
   .toggle.refresh.spinning { animation: spin 0.9s linear infinite; cursor: default; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -835,6 +871,7 @@ const STYLE = `
   .pill.on { background: rgba(229, 38, 31, 0.18); color: #ff6b4a; }
   .pill.hot { background: rgba(255, 154, 60, 0.18); color: #ff9a3c; }
   .pill.pot { background: rgba(120, 160, 200, 0.18); color: #8fb4dc; }
+  .pill.timer { background: rgba(255, 154, 60, 0.18); color: #ff9a3c; }
   .pill.danger { box-shadow: inset 0 0 0 1.5px #ff5252; }
   .camera img { width: 100%; border-radius: 12px; display: block; }
 `;

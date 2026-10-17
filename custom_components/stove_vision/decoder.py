@@ -448,7 +448,7 @@ def read_timer_digits(img: Image.Image) -> tuple[str | None, str | None]:
         )
         # Segment centres follow the timer font's italic slant. Broad regions
         # include adjacent strokes at this resolution (especially the zero).
-        points = [(1, 543), (2, 545), (1, 550), (-1, 552), (-3, 550), (-3, 545), (0, 548)]
+        points = [(-1, 543), (2, 545), (1, 550), (-1, 552), (-3, 550), (-3, 545), (0, 548)]
         values = [(px[cx + dx, y][0] + px[cx + dx, y][2]) / 2 for dx, y in points]
         contrast = max(values) - background
         if contrast < 90:
