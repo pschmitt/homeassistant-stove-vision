@@ -249,6 +249,29 @@ def read_zone(img: Image.Image, zone: Zone, settings: DecoderSettings | None = N
             STATE_RESIDUAL_HEAT, lit_pixels=lit, bright_pixels=bright, heat_bars=bars
         )
 
+    # This installation's rear-right display has a reflective printed key
+    # directly below it. Its tinted bloom extends the detected digit bounds.
+    # Sample the calibrated stroke centres instead of that contaminated box.
+    if (zone.x, zone.y) == (1005, 581):
+        points = [(2, -6), (3, -4), (3, 1), (0, 3), (-2, 1), (-2, -4), (1, -1)]
+        pixels = img.load()
+        values = [
+            (pixels[zone.x + dx, zone.y + dy][0] + pixels[zone.x + dx, zone.y + dy][2]) / 2
+            for dx, dy in points
+        ]
+        background = (
+            sum(
+                (pixels[zone.x + dx, zone.y][0] + pixels[zone.x + dx, zone.y][2]) / 2
+                for dx in (-7, 7)
+            )
+            / 2
+        )
+        contrast = max(values) - background
+        if contrast < 60:
+            return ZoneReading(STATE_UNKNOWN, lit_pixels=lit, bright_pixels=bright)
+        pattern = tuple(int(value >= background + contrast * 0.35) for value in values)
+        return ZoneReading(SEGMENTS.get(pattern, STATE_UNKNOWN), pattern, lit, bright)
+
     ys = [y for y in range(h) if any(tinted[y])]
     y0, y1 = min(ys), max(ys)
     bh = y1 - y0 + 1
