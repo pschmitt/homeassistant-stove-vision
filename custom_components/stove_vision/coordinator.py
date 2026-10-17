@@ -237,11 +237,10 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
                 None,
             )
             digits.append(digit)
-        self._timer_minutes = (
-            int(digits[0]) * 10 + int(digits[1])
-            if all(value is not None for value in digits)
-            else None
-        )
+        if all(value is not None for value in digits):
+            self._timer_minutes = int(digits[0]) * 10 + int(digits[1])
+        elif all(pair == (None, None) for pair in self._timer_history):
+            self._timer_minutes = None
         if infrared:
             self._timer_history.clear()
             self._timer_minutes = None
