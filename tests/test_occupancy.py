@@ -129,3 +129,21 @@ def test_annotate_stove_returns_jpeg() -> None:
     img = Image.open(FIXTURES / "stove_empty.png").convert("RGB")
     data = occupancy.annotate_stove(img, AREAS, GLASS, {a.key: False for a in AREAS})
     assert data[:2] == b"\xff\xd8"
+
+
+def test_tracker_sustained_uncertainty_expires_state() -> None:
+    tracker = occupancy.OccupancyTracker()
+    _settle(tracker, _r(True, bright=True))
+    for _ in range(tracker.slow - 1):
+        assert tracker.update(_r(None)) is True
+    assert tracker.update(_r(None)) is None
+    assert tracker.update(_r(False)) is None
+    assert tracker.update(_r(False)) is False
+
+
+def test_tracker_uncertainty_breaks_pending_agreement() -> None:
+    tracker = occupancy.OccupancyTracker()
+    for _ in range(tracker.slow - 1):
+        tracker.update(_r(True))
+    tracker.update(_r(None))
+    assert tracker.update(_r(True)) is None

@@ -199,12 +199,20 @@ class OccupancyTracker:
         self.last: OccupancyReading | None = None
         self._pending: bool | None = None
         self._count = 0
+        self._unsure_count = 0
 
     def update(self, reading: OccupancyReading) -> bool | None:
         """Feed one frame's reading, return the debounced state."""
         self.last = reading
         if reading.occupied is None:
+            self._pending, self._count = None, 0
+            self._unsure_count += 1
+            # Reflections can hide an empty ring indefinitely. Do not retain
+            # an old occupancy verdict after sustained uncertainty.
+            if self._unsure_count >= self.slow:
+                self.state = None
             return self.state
+        self._unsure_count = 0
         # No shortcut for the first readings after a start: a single frame
         # with a shadowed ring must not latch "occupied"
         if reading.occupied == self.state:
