@@ -396,18 +396,22 @@ def annotate(
     zones: Sequence[Zone],
     readings: dict[str, ZoneReading],
     settings: DecoderSettings | None = None,
+    timer: int | None = None,
+    timer_digits: tuple[str | None, str | None] | None = None,
     margin: int = 40,
     scale: int = 3,
 ) -> bytes:
-    """JPEG of the panel around the zones, with their windows and readings.
+    """JPEG of the panel around the zones and timer, with windows and readings.
 
-    Used to calibrate the zone positions.
+    Used to calibrate the zone and timer positions.
     """
     s = settings or DecoderSettings()
-    left = max(0, min(z.x for z in zones) - s.half_w - margin)
-    top = max(0, min(z.y for z in zones) - s.half_h - margin)
-    right = min(img.width, max(z.x for z in zones) + s.half_w + margin)
-    bottom = min(img.height, max(z.y for z in zones) + s.half_h + margin)
+    all_x = [z.x for z in zones] + [975, 987]
+    all_y = [z.y for z in zones] + [547]
+    left = max(0, min(all_x) - s.half_w - margin)
+    top = max(0, min(all_y) - s.half_h - margin)
+    right = min(img.width, max(all_x) + s.half_w + margin)
+    bottom = min(img.height, max(all_y) + s.half_h + margin)
     panel = img.crop((left, top, right, bottom))
     panel = panel.resize((panel.width * scale, panel.height * scale), Image.Resampling.NEAREST)
     draw = ImageDraw.Draw(panel)
@@ -422,6 +426,25 @@ def annotate(
         if reading and reading.heat_bars:
             label = f"heat {reading.heat_bars}"
         draw.text((x0, y1 + 3), f"{zone.key}: {label}", fill=(0, 200, 255))
+
+    # Timer digit windows
+    for cx in (975, 987):
+        x0 = (cx - 5 - left) * scale
+        x1 = (cx + 5 - left) * scale
+        y0 = (539 - top) * scale
+        y1 = (555 - top) * scale
+        draw.rectangle((x0, y0, x1, y1), outline=(0, 200, 255), width=2)
+
+    tx0 = (975 - 5 - left) * scale
+    ty0 = (539 - top) * scale
+    if timer is not None:
+        t_label = f"{timer:02d}"
+    elif timer_digits and any(d is not None for d in timer_digits):
+        t_label = f"{timer_digits[0] or '_'}{timer_digits[1] or '_'}"
+    else:
+        t_label = "off"
+    draw.text((tx0, ty0 - 13), f"timer: {t_label}", fill=(0, 200, 255))
+
     out = BytesIO()
     panel.save(out, format="JPEG", quality=85)
     return out.getvalue()

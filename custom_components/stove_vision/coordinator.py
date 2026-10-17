@@ -256,10 +256,18 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
         readings = read_frame(img, self.zones, self.settings)
         occupancy = read_occupancy(img, self.areas, self.glass_box)
         states = {key: self._trackers[key].update(reading) for key, reading in occupancy.items()}
+        timer_digits = self._timer_history[-1] if self._timer_history else None
         return (
             readings,
             occupancy,
-            annotate(img, self.zones, readings, self.settings),
+            annotate(
+                img,
+                self.zones,
+                readings,
+                self.settings,
+                timer=self._timer_minutes,
+                timer_digits=timer_digits,
+            ),
             annotate_stove(img, self.areas, self.glass_box, states),
         )
 
