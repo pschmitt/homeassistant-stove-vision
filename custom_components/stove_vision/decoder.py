@@ -402,3 +402,44 @@ def annotate(
     out = BytesIO()
     panel.save(out, format="JPEG", quality=85)
     return out.getvalue()
+
+
+def read_timer_digits(img: Image.Image) -> tuple[str | None, str | None]:
+    """Read the independent two-digit timer using its calibrated segment boxes.
+
+    Timer strokes are much smaller and paler than the burner displays. Use
+    surrounding glass as the baseline; normalizing to the dimmest segment
+    would erase one stroke of an eight and turn it into a nine.
+    """
+    px = img.convert("RGB").load()
+
+    def digit(cx: int) -> str | None:
+        if img.width <= cx + 7 or img.height <= 557:
+            return None
+        background = (
+            sum(
+                (px[x, y][0] + px[x, y][2]) / 2
+                for x, y in [(cx - 7, 547), (cx + 7, 547), (cx, 537), (cx, 557)]
+            )
+            / 4
+        )
+        # Segment centres follow the timer font's italic slant. Broad regions
+        # include adjacent strokes at this resolution (especially the zero).
+        points = [(1, 543), (2, 545), (1, 550), (-1, 552), (-3, 550), (-3, 545), (0, 548)]
+        values = [(px[cx + dx, y][0] + px[cx + dx, y][2]) / 2 for dx, y in points]
+        contrast = max(values) - background
+        if contrast < 90:
+            return None
+        threshold = background + contrast * 0.35
+        pattern = tuple(int(value >= threshold) for value in values)
+        return SEGMENTS.get(pattern)
+
+    return digit(975), digit(987)
+
+
+def read_timer(img: Image.Image) -> int | None:
+    """Read both timer digits in the same frame, without inferring missing ones."""
+    tens, ones = read_timer_digits(img)
+    if tens is not None and ones is not None:
+        return int(tens) * 10 + int(ones)
+    return None

@@ -26,6 +26,7 @@ positions.
 | Entity | |
 |---|---|
 | `sensor.<name>_rear_left` (and `rear_right`, `front_left`, `front_right`) | What the zone's display shows: `off`, `0` (zone selected, not set yet), `1`-`9`, `residual_heat`, `obstructed`, `unknown`. Attributes: `level`, `residual_heat_bars` (1-3, counting down as the zone cools), the raw (unsmoothed) reading |
+| `sensor.<name>_timer_remaining` | Remaining timer minutes from its separate two-digit display. Each digit needs two agreeing frames in the last six polls. Unknown when blank, unreadable, or in infrared; no inferred countdown. Timer segment positions are calibrated to this installation (digit centres 975,547 and 987,547 at 1080p). |
 | `binary_sensor.<name>_rear_left_occupied` (and the other zones) | Something (a pot, a pan) sits on the zone. Unavailable until there's a verdict. Attributes: `ring_visibility`, `ring_line`, `brightness`, the raw verdict of the latest frame |
 | `binary_sensor.<name>_on` | Any zone is heating. Attribute `zones` |
 | `binary_sensor.<name>_hot` | Any zone is heating or shows residual heat |

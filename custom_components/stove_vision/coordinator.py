@@ -47,6 +47,7 @@ from .decoder import (
     is_infrared,
     load_frame,
     read_frame,
+    read_timer_digits,
     smooth,
 )
 from .occupancy import (
@@ -177,6 +178,7 @@ class StoveData:
     occupancy: dict[str, ZoneOccupancy]
     frame_time: datetime
     infrared: bool = False
+    timer_minutes: int | None = None
 
 
 class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
@@ -206,6 +208,8 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
         self.areas = areas_from_options(self.config)
         self.glass_box = parse_ints(self.config.get(CONF_GLASS_BOX, DEFAULT_GLASS_BOX), 4)
         self._trackers = {area.key: OccupancyTracker() for area in self.areas}
+        self._timer_history: deque[tuple[str | None, str | None]] = deque(maxlen=6)
+        self._timer_minutes: int | None = None
         self._failures = 0
         self.panel_image: bytes | None = None
         self.stove_image: bytes | None = None
@@ -219,7 +223,28 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
         Readings are None for an infrared frame.
         """
         img = load_frame(frame, self.rotation)
-        if is_infrared(img):
+        infrared = is_infrared(img)
+        self._timer_history.append((None, None) if infrared else read_timer_digits(img))
+        digits = []
+        for index in (0, 1):
+            history = [pair[index] for pair in self._timer_history]
+            digit = next(
+                (
+                    value
+                    for value in reversed(history)
+                    if value is not None and history.count(value) >= 2
+                ),
+                None,
+            )
+            digits.append(digit)
+        self._timer_minutes = (
+            int(digits[0]) * 10 + int(digits[1])
+            if all(value is not None for value in digits)
+            else None
+        )
+        if infrared:
+            self._timer_history.clear()
+            self._timer_minutes = None
             for tracker in self._trackers.values():
                 tracker.reset()
             unknown = {key: None for key in self._trackers}
@@ -288,4 +313,4 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
             key: ZoneOccupancy(self._trackers[key].state, reading)
             for key, reading in occupancy.items()
         }
-        return StoveData(zones, occupied, now)
+        return StoveData(zones, occupied, now, timer_minutes=self._timer_minutes)

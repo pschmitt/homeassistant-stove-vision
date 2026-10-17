@@ -124,3 +124,26 @@ def test_annotate_returns_jpeg() -> None:
     img = decoder.load_frame((FIXTURES / "levels_1_2_3_4.png").read_bytes())
     data = decoder.annotate(img, ZONES, decoder.read_frame(img, ZONES), margin=10)
     assert data[:2] == b"\xff\xd8"
+
+
+def test_timer_independent_two_digit_display() -> None:
+    from PIL import Image
+
+    image = Image.new("RGB", (1920, 1080), (70, 70, 70))
+    points = [(1, 543), (2, 545), (1, 550), (-1, 552), (-3, 550), (-3, 545), (0, 548)]
+    patterns = {glyph: pattern for pattern, glyph in decoder.SEGMENTS.items()}
+    for cx, glyph in [(975, "1"), (987, "0")]:
+        for (dx, y), on in zip(points, patterns[glyph], strict=True):
+            if on:
+                image.putpixel((cx + dx, y), (240, 200, 240))
+    assert decoder.read_timer(image) == 10
+    assert decoder.read_timer(Image.new("RGB", (1920, 1080))) is None
+
+
+def test_timer_real_display() -> None:
+    from PIL import Image
+
+    for fixture, expected in [("timer_05.png", ("0", "5")), ("timer_partial_04.png", (None, "4"))]:
+        image = Image.new("RGB", (1920, 1080))
+        image.paste(Image.open(FIXTURES / fixture), (960, 535))
+        assert decoder.read_timer_digits(image) == expected

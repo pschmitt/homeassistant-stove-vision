@@ -30,7 +30,9 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Add one sensor per zone."""
-    async_add_entities(ZoneSensor(entry.runtime_data, key) for key in ZONES)
+    async_add_entities(
+        [*(ZoneSensor(entry.runtime_data, key) for key in ZONES), TimerSensor(entry.runtime_data)]
+    )
 
 
 class ZoneSensor(StoveVisionEntity, SensorEntity):
@@ -80,3 +82,22 @@ class ZoneSensor(StoveVisionEntity, SensorEntity):
             "raw_segments": "".join(map(str, zone.raw.segments)) if zone.raw.segments else None,
             "lit_pixels": zone.raw.lit_pixels,
         }
+
+
+class TimerSensor(StoveVisionEntity, SensorEntity):
+    """Minutes actually visible on the independent timer display."""
+
+    _attr_name = "Timer remaining"
+    _attr_icon = "mdi:timer-outline"
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = "min"
+
+    def __init__(self, coordinator: StoveVisionCoordinator) -> None:
+        """Set up the timer sensor."""
+        super().__init__(coordinator, "timer_remaining")
+
+    @property
+    def native_value(self) -> int | None:
+        """Confirmed display minutes; no inferred countdown when unreadable."""
+        data = self.coordinator.data
+        return data.timer_minutes if data is not None and not data.infrared else None
