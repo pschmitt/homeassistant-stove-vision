@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import importlib.util
-from pathlib import Path
 import sys
+from pathlib import Path
 
-from PIL import Image
 import pytest
+from PIL import Image
 
-_MODULE = (
-    Path(__file__).parents[1] / "custom_components" / "stove_vision" / "occupancy.py"
-)
+_MODULE = Path(__file__).parents[1] / "custom_components" / "stove_vision" / "occupancy.py"
 _spec = importlib.util.spec_from_file_location("stove_vision_occupancy", _MODULE)
 occupancy = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = occupancy

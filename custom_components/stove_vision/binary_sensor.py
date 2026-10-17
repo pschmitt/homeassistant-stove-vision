@@ -54,10 +54,7 @@ async def async_setup_entry(
     coordinator = entry.runtime_data
     async_add_entities(
         [
-            *(
-                StoveBinarySensor(coordinator, description)
-                for description in DESCRIPTIONS
-            ),
+            *(StoveBinarySensor(coordinator, description) for description in DESCRIPTIONS),
             *(ZoneOccupancySensor(coordinator, zone) for zone in ZONES),
             DangerSensor(coordinator),
             InfraredSensor(coordinator),

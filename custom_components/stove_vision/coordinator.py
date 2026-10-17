@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import logging
 from typing import TYPE_CHECKING, Any
 
 from aiohttp import ClientError, ClientTimeout
-
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -27,10 +26,10 @@ from .const import (
     CONF_SMOOTHING,
     CONF_SNAPSHOT_URL,
     CONF_ZONE_PREFIX,
-    DEFAULT_ROTATION,
-    DEFAULT_SCAN_INTERVAL,
     DEFAULT_CAMERA_STREAM,
     DEFAULT_GLASS_BOX,
+    DEFAULT_ROTATION,
+    DEFAULT_SCAN_INTERVAL,
     DEFAULT_SMOOTHING,
     DEFAULT_ZONE_POSITIONS,
     DEFAULT_ZONE_RINGS,
@@ -81,9 +80,7 @@ def parse_ints(value: str, count: int) -> tuple[int, ...]:
 
 def parse_rings(value: str) -> tuple[Ring, ...]:
     """Parse "cx,cy,rx,ry[;cx,cy,rx,ry]"."""
-    rings = tuple(
-        Ring(*parse_ints(part, 4)) for part in value.split(";") if part.strip()
-    )
+    rings = tuple(Ring(*parse_ints(part, 4)) for part in value.split(";") if part.strip())
     if not rings:
         raise ValueError("no ring")
     return rings
@@ -94,9 +91,7 @@ def areas_from_options(options: dict[str, Any]) -> list[ZoneArea]:
     return [
         ZoneArea(
             key,
-            parse_rings(
-                options.get(f"{CONF_RINGS_PREFIX}{key}", DEFAULT_ZONE_RINGS[key])
-            ),
+            parse_rings(options.get(f"{CONF_RINGS_PREFIX}{key}", DEFAULT_ZONE_RINGS[key])),
         )
         for key in ZONES
     ]
@@ -106,9 +101,7 @@ def zones_from_options(options: dict[str, Any]) -> list[Zone]:
     """The configured zone positions."""
     zones = []
     for key in ZONES:
-        x, y = parse_position(
-            options.get(f"{CONF_ZONE_PREFIX}{key}", DEFAULT_ZONE_POSITIONS[key])
-        )
+        x, y = parse_position(options.get(f"{CONF_ZONE_PREFIX}{key}", DEFAULT_ZONE_POSITIONS[key]))
         zones.append(Zone(key, x, y))
     return zones
 
@@ -134,9 +127,7 @@ async def async_fetch_frame(hass: HomeAssistant, config: dict[str, Any]) -> byte
                 frame = await ffmpeg_get_image(hass, source)
                 if frame:
                     return frame
-                _LOGGER.debug(
-                    "No frame from %s's stream, using its snapshot", camera_entity
-                )
+                _LOGGER.debug("No frame from %s's stream, using its snapshot", camera_entity)
         image = await camera.async_get_image(hass, camera_entity, timeout=FETCH_TIMEOUT)
         return image.content
     session = async_get_clientsession(hass)
@@ -213,9 +204,7 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
             zone.key: deque(maxlen=max(1, smoothing)) for zone in self.zones
         }
         self.areas = areas_from_options(self.config)
-        self.glass_box = parse_ints(
-            self.config.get(CONF_GLASS_BOX, DEFAULT_GLASS_BOX), 4
-        )
+        self.glass_box = parse_ints(self.config.get(CONF_GLASS_BOX, DEFAULT_GLASS_BOX), 4)
         self._trackers = {area.key: OccupancyTracker() for area in self.areas}
         self._failures = 0
         self.panel_image: bytes | None = None
@@ -224,9 +213,7 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
 
     def _decode(
         self, frame: bytes
-    ) -> tuple[
-        dict[str, ZoneReading] | None, dict[str, OccupancyReading] | None, bytes, bytes
-    ]:
+    ) -> tuple[dict[str, ZoneReading] | None, dict[str, OccupancyReading] | None, bytes, bytes]:
         """Decode a frame (runs in the executor: Pillow is CPU work).
 
         Readings are None for an infrared frame.
@@ -244,10 +231,7 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
             )
         readings = read_frame(img, self.zones, self.settings)
         occupancy = read_occupancy(img, self.areas, self.glass_box)
-        states = {
-            key: self._trackers[key].update(reading)
-            for key, reading in occupancy.items()
-        }
+        states = {key: self._trackers[key].update(reading) for key, reading in occupancy.items()}
         return (
             readings,
             occupancy,

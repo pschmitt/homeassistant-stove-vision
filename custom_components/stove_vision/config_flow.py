@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant, callback
@@ -90,25 +89,21 @@ def _tuning_schema(defaults: dict[str, Any]) -> dict[vol.Marker, Any]:
     }
     for zone in ZONES:
         key = f"{CONF_ZONE_PREFIX}{zone}"
-        schema[
-            vol.Required(key, default=defaults.get(key, DEFAULT_ZONE_POSITIONS[zone]))
-        ] = selector.TextSelector()
+        schema[vol.Required(key, default=defaults.get(key, DEFAULT_ZONE_POSITIONS[zone]))] = (
+            selector.TextSelector()
+        )
     for zone in ZONES:
         key = f"{CONF_RINGS_PREFIX}{zone}"
-        schema[
-            vol.Required(key, default=defaults.get(key, DEFAULT_ZONE_RINGS[zone]))
-        ] = selector.TextSelector()
-    schema[
-        vol.Required(
-            CONF_GLASS_BOX, default=defaults.get(CONF_GLASS_BOX, DEFAULT_GLASS_BOX)
+        schema[vol.Required(key, default=defaults.get(key, DEFAULT_ZONE_RINGS[zone]))] = (
+            selector.TextSelector()
         )
+    schema[
+        vol.Required(CONF_GLASS_BOX, default=defaults.get(CONF_GLASS_BOX, DEFAULT_GLASS_BOX))
     ] = selector.TextSelector()
     return schema
 
 
-async def _async_validate(
-    hass: HomeAssistant, user_input: dict[str, Any]
-) -> dict[str, str]:
+async def _async_validate(hass: HomeAssistant, user_input: dict[str, Any]) -> dict[str, str]:
     """Check the source delivers a decodable frame and positions parse."""
     errors: dict[str, str] = {}
     if not user_input.get(CONF_SNAPSHOT_URL) and not user_input.get(CONF_CAMERA_ENTITY):
@@ -133,9 +128,7 @@ async def _async_validate(
         return errors
     try:
         frame = await async_fetch_frame(hass, user_input)
-        await hass.async_add_executor_job(
-            load_frame, frame, int(user_input.get(CONF_ROTATION, 0))
-        )
+        await hass.async_add_executor_job(load_frame, frame, int(user_input.get(CONF_ROTATION, 0)))
     except Exception:  # noqa: BLE001
         _LOGGER.debug("Frame check failed", exc_info=True)
         errors["base"] = "cannot_fetch"
@@ -160,9 +153,7 @@ class StoveVisionConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Name and frame source."""
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -176,9 +167,7 @@ class StoveVisionConfigFlow(ConfigFlow, domain=DOMAIN):
             vol.Required(CONF_NAME, default=defaults.get(CONF_NAME, DEFAULT_NAME)): str,
             **_source_schema(defaults),
         }
-        return self.async_show_form(
-            step_id="user", data_schema=vol.Schema(schema), errors=errors
-        )
+        return self.async_show_form(step_id="user", data_schema=vol.Schema(schema), errors=errors)
 
     @staticmethod
     @callback
@@ -190,9 +179,7 @@ class StoveVisionConfigFlow(ConfigFlow, domain=DOMAIN):
 class StoveVisionOptionsFlow(OptionsFlow):
     """Change the source and calibrate the zone positions."""
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Single options step."""
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -201,6 +188,4 @@ class StoveVisionOptionsFlow(OptionsFlow):
                 return self.async_create_entry(data=_normalize(user_input))
         defaults = user_input or dict(self.config_entry.options)
         schema = {**_source_schema(defaults), **_tuning_schema(defaults)}
-        return self.async_show_form(
-            step_id="init", data_schema=vol.Schema(schema), errors=errors
-        )
+        return self.async_show_form(step_id="init", data_schema=vol.Schema(schema), errors=errors)

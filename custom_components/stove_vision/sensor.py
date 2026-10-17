@@ -77,8 +77,6 @@ class ZoneSensor(StoveVisionEntity, SensorEntity):
             "level": zone.level,
             "residual_heat_bars": zone.reading.heat_bars,
             "raw_state": zone.raw.state,
-            "raw_segments": "".join(map(str, zone.raw.segments))
-            if zone.raw.segments
-            else None,
+            "raw_segments": "".join(map(str, zone.raw.segments)) if zone.raw.segments else None,
             "lit_pixels": zone.raw.lit_pixels,
         }

@@ -58,20 +58,14 @@ async def _async_register_card(hass: HomeAssistant, url: str) -> None:
         return
     resources = lovelace.resources
     await resources.async_get_info()  # loads the collection
-    mine = [
-        item
-        for item in resources.async_items()
-        if item["url"].split("?")[0] == CARD_URL
-    ]
+    mine = [item for item in resources.async_items() if item["url"].split("?")[0] == CARD_URL]
     for duplicate in mine[1:]:
         await resources.async_delete_item(duplicate["id"])
     if not mine:
         _LOGGER.info("Adding the Stove Vision card as a dashboard resource")
         await resources.async_create_item({"res_type": "module", "url": url})
     elif mine[0]["url"] != url:
-        await resources.async_update_item(
-            mine[0]["id"], {"res_type": "module", "url": url}
-        )
+        await resources.async_update_item(mine[0]["id"], {"res_type": "module", "url": url})
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: StoveVisionConfigEntry) -> bool:
@@ -82,22 +76,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: StoveVisionConfigEntry) 
     # Never block startup on the camera: forward the platforms first and grab
     # the first frame in the background. Entities stay unavailable until then.
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    entry.async_create_background_task(
-        hass, coordinator.async_refresh(), f"{DOMAIN}_first_refresh"
-    )
+    entry.async_create_background_task(hass, coordinator.async_refresh(), f"{DOMAIN}_first_refresh")
     entry.async_on_unload(entry.add_update_listener(_async_reload_on_update))
     return True
 
 
-async def async_unload_entry(
-    hass: HomeAssistant, entry: StoveVisionConfigEntry
-) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: StoveVisionConfigEntry) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
-async def _async_reload_on_update(
-    hass: HomeAssistant, entry: StoveVisionConfigEntry
-) -> None:
+async def _async_reload_on_update(hass: HomeAssistant, entry: StoveVisionConfigEntry) -> None:
     """Reload when the options change."""
     await hass.config_entries.async_reload(entry.entry_id)

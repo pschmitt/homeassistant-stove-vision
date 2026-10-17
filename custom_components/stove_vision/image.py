@@ -46,9 +46,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Add the annotated images."""
-    async_add_entities(
-        StoveImage(entry.runtime_data, description) for description in DESCRIPTIONS
-    )
+    async_add_entities(StoveImage(entry.runtime_data, description) for description in DESCRIPTIONS)
 
 
 class StoveImage(StoveVisionEntity, ImageEntity):

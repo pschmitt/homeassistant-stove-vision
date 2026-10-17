@@ -9,9 +9,7 @@ from pathlib import Path
 
 import pytest
 
-_DECODER = (
-    Path(__file__).parents[1] / "custom_components" / "stove_vision" / "decoder.py"
-)
+_DECODER = Path(__file__).parents[1] / "custom_components" / "stove_vision" / "decoder.py"
 _spec = importlib.util.spec_from_file_location("stove_vision_decoder", _DECODER)
 decoder = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = decoder
@@ -60,9 +58,7 @@ def test_residual_heat_stray_pixel_in_gap() -> None:
     readings = _read("residual_heat_off_3_off_off_stray_pixel.png")
     assert readings["rear_right"].state == "residual_heat"
     assert readings["rear_right"].heat_bars == 3
-    assert [readings[z].state for z in ("rear_left", "front_left", "front_right")] == [
-        "off"
-    ] * 3
+    assert [readings[z].state for z in ("rear_left", "front_left", "front_right")] == ["off"] * 3
 
 
 def test_residual_heat_dim() -> None:
@@ -110,9 +106,7 @@ def test_smooth_follows_change() -> None:
 
 
 def test_smooth_off_needs_all_frames() -> None:
-    assert decoder.smooth([_r("residual_heat"), _r("off"), _r("off")]).state == (
-        "residual_heat"
-    )
+    assert decoder.smooth([_r("residual_heat"), _r("off"), _r("off")]).state == ("residual_heat")
     assert decoder.smooth([_r("off"), _r("off"), _r("off")]).state == "off"
 
 

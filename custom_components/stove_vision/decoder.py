@@ -129,11 +129,7 @@ def _residual_heat_bars(
     # A digit like 3 also has three bars, but joined by vertical strokes:
     # thin and faint, yet lit in every row between two bars. Bars have dark
     # gaps; a stray lit pixel in one gap row doesn't join them.
-    span = [
-        x
-        for x in range(w)
-        if any(tinted[y][x] for a, b in groups for y in range(a, b + 1))
-    ]
+    span = [x for x in range(w) if any(tinted[y][x] for a, b in groups for y in range(a, b + 1))]
     columns = range(max(0, min(span) - 1), min(w, max(span) + 2))
     for i in range(len(groups) - 1):
         gap = range(groups[i][1] + 1, groups[i + 1][0])
@@ -163,12 +159,7 @@ def _drop_edge_blobs(mask: list[list[bool]], w: int, h: int) -> list[list[bool]]
                 edge = edge or x in (0, w - 1) or y in (0, h - 1)
                 for nx in (x - 1, x, x + 1):
                     for ny in (y - 1, y, y + 1):
-                        if (
-                            0 <= nx < w
-                            and 0 <= ny < h
-                            and mask[ny][nx]
-                            and not seen[ny][nx]
-                        ):
+                        if 0 <= nx < w and 0 <= ny < h and mask[ny][nx] and not seen[ny][nx]:
                             seen[ny][nx] = True
                             stack.append((nx, ny))
             if not edge:
@@ -189,9 +180,7 @@ def _contrast_bars(px, w: int, h: int, s: DecoderSettings) -> int | None:
     """
     value = [[sum(px[x, y][:3]) / 3 for x in range(w)] for y in range(h)]
     background = sorted(v for row in value for v in row)[len(value) * w // 2]
-    strong = _drop_edge_blobs(
-        [[v > background + s.contrast for v in row] for row in value], w, h
-    )
+    strong = _drop_edge_blobs([[v > background + s.contrast for v in row] for row in value], w, h)
     faint = _drop_edge_blobs(
         [[v > background + s.contrast / 2 for v in row] for row in value], w, h
     )
@@ -207,9 +196,7 @@ def _contrast_bars(px, w: int, h: int, s: DecoderSettings) -> int | None:
     return bars
 
 
-def read_zone(
-    img: Image.Image, zone: Zone, settings: DecoderSettings | None = None
-) -> ZoneReading:
+def read_zone(img: Image.Image, zone: Zone, settings: DecoderSettings | None = None) -> ZoneReading:
     """Read a single zone display around its configured centre."""
     s = settings or DecoderSettings()
     crop = img.crop(
@@ -323,9 +310,7 @@ def read_zone(
     for pattern, glyph in SEGMENTS.items():
         score = sum(n if on else 1 - n for n, on in zip(norm, pattern, strict=True)) / 7
         scores[glyph] = max(scores.get(glyph, 0.0), score)
-    (best, best_score), (_, second) = sorted(
-        scores.items(), key=lambda kv: kv[1], reverse=True
-    )[:2]
+    (best, best_score), (_, second) = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:2]
     if best_score >= s.min_score and best_score - second >= s.min_margin:
         return ZoneReading(best, segs, lit, bright)
     return ZoneReading(STATE_UNKNOWN, segs, lit, bright)
@@ -401,9 +386,7 @@ def annotate(
     right = min(img.width, max(z.x for z in zones) + s.half_w + margin)
     bottom = min(img.height, max(z.y for z in zones) + s.half_h + margin)
     panel = img.crop((left, top, right, bottom))
-    panel = panel.resize(
-        (panel.width * scale, panel.height * scale), Image.Resampling.NEAREST
-    )
+    panel = panel.resize((panel.width * scale, panel.height * scale), Image.Resampling.NEAREST)
     draw = ImageDraw.Draw(panel)
     for zone in zones:
         x0 = (zone.x - s.half_w - left) * scale

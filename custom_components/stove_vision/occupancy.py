@@ -14,10 +14,10 @@ Two cues per zone:
 
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from io import BytesIO
-import math
 
 from PIL import Image, ImageDraw
 
@@ -114,18 +114,12 @@ def _ring_visibility(
     return visible / s.samples, lit / s.samples
 
 
-def _interior_median(
-    px, size: tuple[int, int], ring: Ring, s: OccupancySettings
-) -> float:
+def _interior_median(px, size: tuple[int, int], ring: Ring, s: OccupancySettings) -> float:
     w, h = size
     rx, ry = ring.rx * s.interior_scale, ring.ry * s.interior_scale
     values = []
-    for y in range(
-        max(0, int(ring.cy - ry)), min(h, int(ring.cy + ry) + 1), s.interior_step
-    ):
-        for x in range(
-            max(0, int(ring.cx - rx)), min(w, int(ring.cx + rx) + 1), s.interior_step
-        ):
+    for y in range(max(0, int(ring.cy - ry)), min(h, int(ring.cy + ry) + 1), s.interior_step):
+        for x in range(max(0, int(ring.cx - rx)), min(w, int(ring.cx + rx) + 1), s.interior_step):
             if ((x - ring.cx) / rx) ** 2 + ((y - ring.cy) / ry) ** 2 <= 1:
                 values.append(px[x, y])
     values.sort()
@@ -242,9 +236,7 @@ def annotate_stove(
     left = max(0, min(min(r.cx - r.rx for r in rings), glass_box[0]) - margin)
     top = max(0, min(min(r.cy - r.ry for r in rings), glass_box[1]) - margin)
     right = min(img.width, max(max(r.cx + r.rx for r in rings), glass_box[2]) + margin)
-    bottom = min(
-        img.height, max(max(r.cy + r.ry for r in rings), glass_box[3]) + margin
-    )
+    bottom = min(img.height, max(max(r.cy + r.ry for r in rings), glass_box[3]) + margin)
     stove = img.crop((left, top, right, bottom)).convert("RGB")
     draw = ImageDraw.Draw(stove)
     colours = {True: (255, 80, 0), False: (0, 200, 255), None: (160, 160, 160)}

@@ -21,9 +21,7 @@ CONF_RINGS_PREFIX = "rings_"
 CONF_GLASS_BOX = "glass_box"
 
 DEFAULT_NAME = "Stove"
-DEFAULT_SNAPSHOT_URL = (
-    "http://ccab4aaf-frigate:1984/api/frame.jpeg?src=magicam_main_rtsp"
-)
+DEFAULT_SNAPSHOT_URL = "http://ccab4aaf-frigate:1984/api/frame.jpeg?src=magicam_main_rtsp"
 DEFAULT_ROTATION = 0
 # Read a frame from the camera entity's stream (full resolution) rather than
 # its snapshot, which many cameras (e.g. behind a Reolink Home Hub) scale down
