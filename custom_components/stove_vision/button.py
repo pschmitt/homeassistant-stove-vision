@@ -57,6 +57,7 @@ class CalibrateButton(StoveVisionEntity, ButtonEntity):
 
     _attr_entity_category = EntityCategory.CONFIG
     _attr_translation_key = "calibrate"
+    _attr_name = "Calibrate"
     _attr_icon = "mdi:crosshairs-gps"
 
     def __init__(self, coordinator: StoveVisionCoordinator) -> None:

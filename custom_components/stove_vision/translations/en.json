@@ -187,6 +187,9 @@
     "button": {
       "refresh": {
         "name": "Refresh"
+      },
+      "calibrate": {
+        "name": "Calibrate"
       }
     }
   }
