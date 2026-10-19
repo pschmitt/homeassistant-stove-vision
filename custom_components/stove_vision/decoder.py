@@ -184,6 +184,10 @@ def _contrast_bars(px, w: int, h: int, s: DecoderSettings) -> int | None:
     faint = _drop_edge_blobs(
         [[v > background + s.contrast / 2 for v in row] for row in value], w, h
     )
+    strong = [
+        [st and f for st, f in zip(s_row, f_row)]
+        for s_row, f_row in zip(strong, faint)
+    ]
     if sum(map(sum, strong)) < s.min_lit:
         return None
     bars = _residual_heat_bars(strong, faint, w, h)

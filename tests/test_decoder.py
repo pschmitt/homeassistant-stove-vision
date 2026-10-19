@@ -156,3 +156,16 @@ def test_rear_right_reflected_key_does_not_change_eight_to_seven() -> None:
         image = Image.new("RGB", (1920, 1080))
         image.paste(Image.open(FIXTURES / fixture), (990, 565))
         assert decoder.read_zone(image, decoder.Zone("rear_right", 1005, 581)).state == expected
+
+
+def test_edge_symbol_anti_aliased_at_boundary_not_residual_heat() -> None:
+    from PIL import Image
+
+    # A dark panel with a printed symbol cutting across the top edge of the zone window
+    # Boundary pixel at the edge is faint (e.g. 75), pixels inside are strong (e.g. 120)
+    image = Image.new("RGB", (1920, 1080), (30, 30, 30))
+    for y, b in [(569, 75), (570, 75), (571, 120), (572, 120), (573, 120)]:
+        for x in (956, 957, 958):
+            image.putpixel((x, y), (b, b, b))
+    assert decoder.read_zone(image, decoder.Zone("rear_left", 957, 581)).state == "off"
+

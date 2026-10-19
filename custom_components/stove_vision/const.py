@@ -30,8 +30,8 @@ DEFAULT_SCAN_INTERVAL = 10
 DEFAULT_SMOOTHING = 3
 # Digit centres in a 1080p frame of the Miele panel this was calibrated on
 DEFAULT_ZONE_POSITIONS = {
-    "rear_left": "957,575",
-    "rear_right": "1005,575",
+    "rear_left": "957,581",
+    "rear_right": "1005,581",
     "front_left": "939,600",
     "front_right": "1022,600",
 }
