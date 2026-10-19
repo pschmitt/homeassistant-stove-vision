@@ -19,10 +19,14 @@ ZONES = ("rear_left", "rear_right", "front_left", "front_right")
 CONF_ZONE_PREFIX = "zone_"
 CONF_RINGS_PREFIX = "rings_"
 CONF_GLASS_BOX = "glass_box"
+CONF_LANDMARK_X = "landmark_x"
+CONF_LANDMARK_Y = "landmark_y"
 
 DEFAULT_NAME = "Stove"
 DEFAULT_SNAPSHOT_URL = "http://ccab4aaf-frigate:1984/api/frame.jpeg?src=magicam_main_rtsp"
 DEFAULT_ROTATION = 0
+DEFAULT_LANDMARK_X = 935
+DEFAULT_LANDMARK_Y = 633
 # Read a frame from the camera entity's stream (full resolution) rather than
 # its snapshot, which many cameras (e.g. behind a Reolink Home Hub) scale down
 DEFAULT_CAMERA_STREAM = True
