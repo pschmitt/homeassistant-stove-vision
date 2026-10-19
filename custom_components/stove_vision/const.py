@@ -34,20 +34,20 @@ DEFAULT_SCAN_INTERVAL = 10
 DEFAULT_SMOOTHING = 3
 # Digit centres in a 1080p frame of the Miele panel this was calibrated on
 DEFAULT_ZONE_POSITIONS = {
-    "rear_left": "957,581",
-    "rear_right": "1005,581",
-    "front_left": "939,600",
-    "front_right": "1022,600",
+    "rear_left": "962,584",
+    "rear_right": "1010,583",
+    "front_left": "944,606",
+    "front_right": "1030,608",
 }
 # Printed rings per zone (cx,cy,rx,ry; dual zones have two, separated by ";")
 # and a patch of bare glass between the zones, same frame
 DEFAULT_ZONE_RINGS = {
-    "rear_left": "795,280,71,70",
-    "rear_right": "1111,311,105,103;1111,309,61,59",
-    "front_left": "809,519,91,92;809,518,51,52",
-    "front_right": "1148,536,73,74",
+    "rear_left": "798,290,74,69",
+    "rear_right": "1115,328,109,102;1115,328,64,60",
+    "front_left": "809,538,92,94;809,538,52,53",
+    "front_right": "1149,553,75,75",
 }
-DEFAULT_GLASS_BOX = "930,395,980,440"
+DEFAULT_GLASS_BOX = "939,404,989,449"
 
 # A frame grab (go2rtc waits for a keyframe) or decode can fail now and then;
 # keep the last state for a few polls before going unavailable.

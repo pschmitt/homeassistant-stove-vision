@@ -26,10 +26,10 @@ DEFAULT_ZONE_POSITIONS = {
 }
 
 DEFAULT_ZONE_RINGS = {
-    "rear_left": "804,289,71,70",
-    "rear_right": "1120,320,105,103;1120,318,61,59",
-    "front_left": "818,528,91,92;818,527,51,52",
-    "front_right": "1157,545,73,74",
+    "rear_left": "798,290,74,69",
+    "rear_right": "1115,328,109,102;1115,328,64,60",
+    "front_left": "809,538,92,94;809,538,52,53",
+    "front_right": "1149,553,75,75",
 }
 
 LANDMARK_PATH = Path(__file__).parent / "panel_landmark.png"
