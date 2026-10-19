@@ -152,7 +152,11 @@ def test_timer_real_display() -> None:
 def test_rear_right_reflected_key_does_not_change_eight_to_seven() -> None:
     from PIL import Image
 
-    for fixture, expected in [("rear_right_8_key_bloom.png", "8"), ("rear_right_9.png", "9")]:
+    for fixture, expected in [
+        ("rear_right_8_key_bloom.png", "8"),
+        ("rear_right_9.png", "9"),
+        ("rear_right_6.png", "6"),
+    ]:
         image = Image.new("RGB", (1920, 1080))
         image.paste(Image.open(FIXTURES / fixture), (990, 565))
         assert decoder.read_zone(image, decoder.Zone("rear_right", 1005, 581)).state == expected

@@ -253,40 +253,28 @@ def read_zone(img: Image.Image, zone: Zone, settings: DecoderSettings | None = N
             STATE_RESIDUAL_HEAT, lit_pixels=lit, bright_pixels=bright, heat_bars=bars
         )
 
-    # This installation's rear-right display has a reflective printed key
-    # directly below it. Its tinted bloom extends the detected digit bounds.
-    # Sample the calibrated stroke centres instead of that contaminated box.
-    if (zone.x, zone.y) == (1005, 581):
-        points = [(2, -6), (3, -4), (3, 1), (0, 3), (-2, 1), (-2, -4), (1, -1)]
-        pixels = img.load()
-        values = [
-            (pixels[zone.x + dx, zone.y + dy][0] + pixels[zone.x + dx, zone.y + dy][2]) / 2
-            for dx, dy in points
-        ]
-        background = (
-            sum(
-                (pixels[zone.x + dx, zone.y][0] + pixels[zone.x + dx, zone.y][2]) / 2
-                for dx in (-7, 7)
-            )
-            / 2
-        )
-        contrast = max(values) - background
-        if contrast < 60:
-            return ZoneReading(STATE_UNKNOWN, lit_pixels=lit, bright_pixels=bright)
-        pattern = tuple(int(value >= background + contrast * 0.35) for value in values)
-        return ZoneReading(SEGMENTS.get(pattern, STATE_UNKNOWN), pattern, lit, bright)
-
-    ys = [y for y in range(h) if any(tinted[y])]
-    y0, y1 = min(ys), max(ys)
+    # For digit shape and bounds, include weak tint pixels so all segments are
+    # captured even if only some segments reached the strict tint threshold.
+    tinted_digit = [
+        [is_tinted(px[x, y][0], px[x, y][1], px[x, y][2], s.weak_tint) for x in range(w)]
+        for y in range(h)
+    ]
+    ys = [y for y in range(h) if any(tinted_digit[y])]
+    if not ys:
+        return ZoneReading(STATE_OFF, lit_pixels=lit, bright_pixels=bright)
+    y0 = min(ys)
+    # A digit is at most 11 pixels high. Reflected bloom from a printed zone key
+    # directly below the display extends tinted rows downward; cap the height at 11 rows.
+    y1 = min(max(ys), y0 + 10)
     bh = y1 - y0 + 1
 
     # Column extent once the slant is undone (rows above the bottom of the
     # digit shifted left), ignoring columns with a single stray pixel
     col_hits: Counter[int] = Counter()
     raw_hits: Counter[int] = Counter()
-    for y in range(h):
+    for y in range(y0, y1 + 1):
         for x in range(w):
-            if tinted[y][x]:
+            if tinted_digit[y][x]:
                 col_hits[round(x - (y1 - y) * s.slant)] += 1
                 raw_hits[x] += 1
     cols = [c for c, n in col_hits.items() if n >= 2] or list(col_hits)
@@ -321,7 +309,7 @@ def read_zone(img: Image.Image, zone: Zone, settings: DecoderSettings | None = N
         means.append(total / n if n else 0.0)
 
     hi, lo = max(means), min(means)
-    if hi - lo < 25:
+    if hi - lo < 45:
         # All segments equally bright: an 8, or nothing readable
         segs = tuple(1 if hi > 120 else 0 for _ in means)
         return ZoneReading(SEGMENTS.get(segs, STATE_UNKNOWN), segs, lit, bright)
