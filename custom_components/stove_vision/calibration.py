@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+
 from PIL import Image
 
 CONF_ZONE_PREFIX = "zone_"
@@ -87,7 +88,7 @@ def find_drift(
             denom = (sum(d * d for d in v_diff) ** 0.5) * t_denom
             if denom == 0:
                 continue
-            ncc = sum(a * b for a, b in zip(v_diff, t_diff)) / denom
+            ncc = sum(a * b for a, b in zip(v_diff, t_diff, strict=True)) / denom
             if ncc > best_ncc:
                 best_ncc = ncc
                 best_dx = (crop_x0 + dx) - base_x

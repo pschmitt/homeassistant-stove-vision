@@ -26,10 +26,12 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Add the refresh and calibrate buttons."""
-    async_add_entities([
-        RefreshButton(entry.runtime_data),
-        CalibrateButton(entry.runtime_data),
-    ])
+    async_add_entities(
+        [
+            RefreshButton(entry.runtime_data),
+            CalibrateButton(entry.runtime_data),
+        ]
+    )
 
 
 class RefreshButton(StoveVisionEntity, ButtonEntity):
@@ -98,4 +100,3 @@ class CalibrateButton(StoveVisionEntity, ButtonEntity):
             self.coordinator.config_entry,
             options=new_options,
         )
-

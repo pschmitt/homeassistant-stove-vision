@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import importlib.util
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from PIL import Image
-import pytest
 
 _DIR = Path(__file__).parents[1] / "custom_components" / "stove_vision"
 sys.path.insert(0, str(_DIR))

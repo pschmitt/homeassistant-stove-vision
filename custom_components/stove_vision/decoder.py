@@ -188,8 +188,8 @@ def _contrast_bars(px, w: int, h: int, s: DecoderSettings) -> int | None:
         [[v > background + s.contrast / 2 for v in row] for row in value], w, h
     )
     strong = [
-        [st and f for st, f in zip(s_row, f_row)]
-        for s_row, f_row in zip(strong, faint)
+        [st and f for st, f in zip(s_row, f_row, strict=True)]
+        for s_row, f_row in zip(strong, faint, strict=True)
     ]
     if sum(map(sum, strong)) < s.min_lit:
         return None
@@ -461,12 +461,7 @@ def read_timer_digits(
     px = img.convert("RGB").load()
 
     def digit(cx: int) -> str | None:
-        if (
-            cx - 7 < 0
-            or img.width <= cx + 7
-            or timer_y - 10 < 0
-            or img.height <= timer_y + 10
-        ):
+        if cx - 7 < 0 or img.width <= cx + 7 or timer_y - 10 < 0 or img.height <= timer_y + 10:
             return None
         background = (
             sum(
@@ -484,8 +479,7 @@ def read_timer_digits(
         # include adjacent strokes at this resolution (especially the zero).
         points = [(-1, -4), (2, -2), (1, 3), (-1, 5), (-3, 3), (-3, -2), (0, 1)]
         values = [
-            (px[cx + dx, timer_y + dy][0] + px[cx + dx, timer_y + dy][2]) / 2
-            for dx, dy in points
+            (px[cx + dx, timer_y + dy][0] + px[cx + dx, timer_y + dy][2]) / 2 for dx, dy in points
         ]
         contrast = max(values) - background
         if contrast < 90:

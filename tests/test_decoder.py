@@ -172,4 +172,3 @@ def test_edge_symbol_anti_aliased_at_boundary_not_residual_heat() -> None:
         for x in (956, 957, 958):
             image.putpixel((x, y), (b, b, b))
     assert decoder.read_zone(image, decoder.Zone("rear_left", 957, 581)).state == "off"
-

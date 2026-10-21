@@ -258,9 +258,7 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
             return (
                 None,
                 None,
-                annotate(
-                    img, self.zones, {}, self.settings, timer_x=timer_x, timer_y=timer_y
-                ),
+                annotate(img, self.zones, {}, self.settings, timer_x=timer_x, timer_y=timer_y),
                 annotate_stove(img, self.areas, self.glass_box, unknown),
             )
         readings = read_frame(img, self.zones, self.settings)
