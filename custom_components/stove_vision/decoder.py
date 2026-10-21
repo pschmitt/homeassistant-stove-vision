@@ -23,6 +23,9 @@ from io import BytesIO
 
 from PIL import Image, ImageDraw
 
+DEFAULT_TIMER_X = 975
+DEFAULT_TIMER_Y = 547
+
 # Segment order: a (top), b (upper right), c (lower right), d (bottom),
 # e (lower left), f (upper left), g (middle)
 SEGMENTS: dict[tuple[int, ...], str] = {
@@ -392,14 +395,16 @@ def annotate(
     timer_digits: tuple[str | None, str | None] | None = None,
     margin: int = 40,
     scale: int = 3,
+    timer_x: int = DEFAULT_TIMER_X,
+    timer_y: int = DEFAULT_TIMER_Y,
 ) -> bytes:
     """JPEG of the panel around the zones and timer, with windows and readings.
 
     Used to calibrate the zone and timer positions.
     """
     s = settings or DecoderSettings()
-    all_x = [z.x for z in zones] + [975, 987]
-    all_y = [z.y for z in zones] + [547]
+    all_x = [z.x for z in zones] + [timer_x, timer_x + 12]
+    all_y = [z.y for z in zones] + [timer_y]
     left = max(0, min(all_x) - s.half_w - margin)
     top = max(0, min(all_y) - s.half_h - margin)
     right = min(img.width, max(all_x) + s.half_w + margin)
@@ -420,15 +425,15 @@ def annotate(
         draw.text((x0, y1 + 3), f"{zone.key}: {label}", fill=(0, 200, 255))
 
     # Timer digit windows
-    for cx in (975, 987):
+    for cx in (timer_x, timer_x + 12):
         x0 = (cx - 5 - left) * scale
         x1 = (cx + 5 - left) * scale
-        y0 = (539 - top) * scale
-        y1 = (555 - top) * scale
+        y0 = (timer_y - 8 - top) * scale
+        y1 = (timer_y + 8 - top) * scale
         draw.rectangle((x0, y0, x1, y1), outline=(0, 200, 255), width=2)
 
-    tx0 = (975 - 5 - left) * scale
-    ty0 = (539 - top) * scale
+    tx0 = (timer_x - 5 - left) * scale
+    ty0 = (timer_y - 8 - top) * scale
     if timer is not None:
         t_label = f"{timer:02d}"
     elif timer_digits and any(d is not None for d in timer_digits):
@@ -442,7 +447,11 @@ def annotate(
     return out.getvalue()
 
 
-def read_timer_digits(img: Image.Image) -> tuple[str | None, str | None]:
+def read_timer_digits(
+    img: Image.Image,
+    timer_x: int = DEFAULT_TIMER_X,
+    timer_y: int = DEFAULT_TIMER_Y,
+) -> tuple[str | None, str | None]:
     """Read the independent two-digit timer using its calibrated segment boxes.
 
     Timer strokes are much smaller and paler than the burner displays. Use
@@ -452,19 +461,32 @@ def read_timer_digits(img: Image.Image) -> tuple[str | None, str | None]:
     px = img.convert("RGB").load()
 
     def digit(cx: int) -> str | None:
-        if img.width <= cx + 7 or img.height <= 557:
+        if (
+            cx - 7 < 0
+            or img.width <= cx + 7
+            or timer_y - 10 < 0
+            or img.height <= timer_y + 10
+        ):
             return None
         background = (
             sum(
                 (px[x, y][0] + px[x, y][2]) / 2
-                for x, y in [(cx - 7, 547), (cx + 7, 547), (cx, 537), (cx, 557)]
+                for x, y in [
+                    (cx - 7, timer_y),
+                    (cx + 7, timer_y),
+                    (cx, timer_y - 10),
+                    (cx, timer_y + 10),
+                ]
             )
             / 4
         )
         # Segment centres follow the timer font's italic slant. Broad regions
         # include adjacent strokes at this resolution (especially the zero).
-        points = [(-1, 543), (2, 545), (1, 550), (-1, 552), (-3, 550), (-3, 545), (0, 548)]
-        values = [(px[cx + dx, y][0] + px[cx + dx, y][2]) / 2 for dx, y in points]
+        points = [(-1, -4), (2, -2), (1, 3), (-1, 5), (-3, 3), (-3, -2), (0, 1)]
+        values = [
+            (px[cx + dx, timer_y + dy][0] + px[cx + dx, timer_y + dy][2]) / 2
+            for dx, dy in points
+        ]
         contrast = max(values) - background
         if contrast < 90:
             return None
@@ -472,7 +494,7 @@ def read_timer_digits(img: Image.Image) -> tuple[str | None, str | None]:
         pattern = tuple(int(value >= threshold) for value in values)
         return SEGMENTS.get(pattern)
 
-    return digit(975), digit(987)
+    return digit(timer_x), digit(timer_x + 12)
 
 
 def read_timer(img: Image.Image) -> int | None:

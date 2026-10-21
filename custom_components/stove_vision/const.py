@@ -21,12 +21,18 @@ CONF_RINGS_PREFIX = "rings_"
 CONF_GLASS_BOX = "glass_box"
 CONF_LANDMARK_X = "landmark_x"
 CONF_LANDMARK_Y = "landmark_y"
+CONF_TIMER_X = "timer_x"
+CONF_TIMER_Y = "timer_y"
 
 DEFAULT_NAME = "Stove"
 DEFAULT_SNAPSHOT_URL = "http://ccab4aaf-frigate:1984/api/frame.jpeg?src=magicam_main_rtsp"
 DEFAULT_ROTATION = 0
 DEFAULT_LANDMARK_X = 935
 DEFAULT_LANDMARK_Y = 633
+# Centre of the timer's tens digit in the rotated camera frame. The ones digit
+# is 12 pixels to the right on this panel.
+DEFAULT_TIMER_X = 975
+DEFAULT_TIMER_Y = 547
 # Read a frame from the camera entity's stream (full resolution) rather than
 # its snapshot, which many cameras (e.g. behind a Reolink Home Hub) scale down
 DEFAULT_CAMERA_STREAM = True

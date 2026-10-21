@@ -20,6 +20,8 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SMOOTHING,
     CONF_SNAPSHOT_URL,
+    CONF_TIMER_X,
+    CONF_TIMER_Y,
     CONF_ZONE_PREFIX,
     DEFAULT_CAMERA_STREAM,
     DEFAULT_GLASS_BOX,
@@ -28,6 +30,8 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SMOOTHING,
     DEFAULT_SNAPSHOT_URL,
+    DEFAULT_TIMER_X,
+    DEFAULT_TIMER_Y,
     DEFAULT_ZONE_POSITIONS,
     DEFAULT_ZONE_RINGS,
     DOMAIN,
@@ -100,6 +104,20 @@ def _tuning_schema(defaults: dict[str, Any]) -> dict[vol.Marker, Any]:
     schema[
         vol.Required(CONF_GLASS_BOX, default=defaults.get(CONF_GLASS_BOX, DEFAULT_GLASS_BOX))
     ] = selector.TextSelector()
+    schema[vol.Required(CONF_TIMER_X, default=defaults.get(CONF_TIMER_X, DEFAULT_TIMER_X))] = (
+        selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0, max=4096, step=1, mode=selector.NumberSelectorMode.BOX
+            )
+        )
+    )
+    schema[vol.Required(CONF_TIMER_Y, default=defaults.get(CONF_TIMER_Y, DEFAULT_TIMER_Y))] = (
+        selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0, max=2160, step=1, mode=selector.NumberSelectorMode.BOX
+            )
+        )
+    )
     return schema
 
 
@@ -138,7 +156,7 @@ async def _async_validate(hass: HomeAssistant, user_input: dict[str, Any]) -> di
 def _normalize(user_input: dict[str, Any]) -> dict[str, Any]:
     data = dict(user_input)
     data[CONF_ROTATION] = int(data.get(CONF_ROTATION, DEFAULT_ROTATION))
-    for key in (CONF_SCAN_INTERVAL, CONF_SMOOTHING):
+    for key in (CONF_SCAN_INTERVAL, CONF_SMOOTHING, CONF_TIMER_X, CONF_TIMER_Y):
         if key in data:
             data[key] = int(data[key])
     # The camera entity wins when both are set; drop the empty one

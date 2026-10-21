@@ -47,6 +47,8 @@
           "rings_front_left": "Front left zone rings",
           "rings_front_right": "Front right zone rings",
           "glass_box": "Bare glass reference",
+          "timer_x": "Timer tens digit x position",
+          "timer_y": "Timer digit y position",
           "camera_stream": "Read the camera's stream"
         },
         "data_description": {
@@ -55,6 +57,8 @@
           "rotation": "Turn the frame so the control panel is upright",
           "smoothing": "Majority vote over this many frames; hides display flicker and brief obstructions",
           "glass_box": "x0,y0,x1,y1 of a patch of bare glass between the zones (yellow box in the Zones image)",
+          "timer_x": "Centre x position of the timer tens digit; the ones digit is 12 pixels to the right",
+          "timer_y": "Centre y position of both timer digits",
           "rings_rear_left": "Printed ring(s) around the zone as cx,cy,rx,ry; dual zones: two rings separated by ;",
           "rings_rear_right": "Printed ring(s) around the zone as cx,cy,rx,ry; dual zones: two rings separated by ;",
           "rings_front_left": "Printed ring(s) around the zone as cx,cy,rx,ry; dual zones: two rings separated by ;",

@@ -26,7 +26,7 @@ positions.
 | Entity | |
 |---|---|
 | `sensor.<name>_rear_left` (and `rear_right`, `front_left`, `front_right`) | What the zone's display shows: `off`, `0` (zone selected, not set yet), `1`-`9`, `residual_heat`, `obstructed`, `unknown`. Attributes: `level`, `residual_heat_bars` (1-3, counting down as the zone cools), the raw (unsmoothed) reading |
-| `sensor.<name>_timer_remaining` | Remaining timer minutes from its separate two-digit display. Each digit needs two agreeing frames in the last six polls. Unknown when blank, unreadable, or in infrared; no inferred countdown. Timer segment positions are calibrated to this installation (digit centres 975,547 and 987,547 at 1080p). |
+| `sensor.<name>_timer_remaining` | Remaining timer minutes from its separate two-digit display. Each digit needs two agreeing frames in the last six polls. Unknown when blank, unreadable, or in infrared; no inferred countdown. The timer digit positions are included in camera auto-calibration. |
 | `binary_sensor.<name>_rear_left_occupied` (and the other zones) | Something (a pot, a pan) sits on the zone. Unavailable until there's a verdict. Attributes: `ring_visibility`, `ring_line`, `brightness`, the raw verdict of the latest frame |
 | `binary_sensor.<name>_on` | Any zone is heating. Attribute `zones` |
 | `binary_sensor.<name>_hot` | Any zone is heating or shows residual heat |
@@ -126,8 +126,9 @@ All options are in the card editor as well.
 3. Add the integration with that URL (or a camera entity) and the rotation
    that makes the panel upright.
 4. Calibrate in the options: turn all zones on at different levels, open
-   the *Panel* image and move each digit window onto its digit; then look at
-   the *Zones* image and fit the rings and the bare glass reference.
+   the *Panel* image and move each zone and timer digit window onto its digit;
+   then look at the *Zones* image and fit the rings and the bare glass reference.
+   The **Calibrate** button shifts these positions together when the camera moves.
 
 ### Options
 
@@ -139,6 +140,7 @@ All options are in the card editor as well.
 | Poll interval | `10` s | Each poll fetches and decodes one frame |
 | Smoothing | `3` frames | Frames each zone's state is voted over |
 | Zone positions | KM 6203 | `x,y` centre of each zone's digit, in pixels of the (rotated) frame |
+| Timer position | `975,547` | `x,y` centre of the timer's tens digit; the ones digit is 12 pixels to the right |
 | Zone rings | KM 6203 | `cx,cy,rx,ry` ellipse of each zone's printed ring; dual zones: two, separated by `;` |
 | Bare glass reference | KM 6203 | `x0,y0,x1,y1` of a patch of empty glass between the zones |
 

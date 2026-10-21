@@ -25,12 +25,16 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SMOOTHING,
     CONF_SNAPSHOT_URL,
+    CONF_TIMER_X,
+    CONF_TIMER_Y,
     CONF_ZONE_PREFIX,
     DEFAULT_CAMERA_STREAM,
     DEFAULT_GLASS_BOX,
     DEFAULT_ROTATION,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SMOOTHING,
+    DEFAULT_TIMER_X,
+    DEFAULT_TIMER_Y,
     DEFAULT_ZONE_POSITIONS,
     DEFAULT_ZONE_RINGS,
     DOMAIN,
@@ -224,7 +228,11 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
         """
         img = load_frame(frame, self.rotation)
         infrared = is_infrared(img)
-        self._timer_history.append((None, None) if infrared else read_timer_digits(img))
+        timer_x = int(self.config.get(CONF_TIMER_X, DEFAULT_TIMER_X))
+        timer_y = int(self.config.get(CONF_TIMER_Y, DEFAULT_TIMER_Y))
+        self._timer_history.append(
+            (None, None) if infrared else read_timer_digits(img, timer_x, timer_y)
+        )
         digits = []
         for index in (0, 1):
             history = [pair[index] for pair in self._timer_history]
@@ -250,7 +258,9 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
             return (
                 None,
                 None,
-                annotate(img, self.zones, {}, self.settings),
+                annotate(
+                    img, self.zones, {}, self.settings, timer_x=timer_x, timer_y=timer_y
+                ),
                 annotate_stove(img, self.areas, self.glass_box, unknown),
             )
         readings = read_frame(img, self.zones, self.settings)
@@ -267,6 +277,8 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
                 self.settings,
                 timer=self._timer_minutes,
                 timer_digits=timer_digits,
+                timer_x=timer_x,
+                timer_y=timer_y,
             ),
             annotate_stove(img, self.areas, self.glass_box, states),
         )

@@ -11,10 +11,14 @@ CONF_RINGS_PREFIX = "rings_"
 CONF_GLASS_BOX = "glass_box"
 CONF_LANDMARK_X = "landmark_x"
 CONF_LANDMARK_Y = "landmark_y"
+CONF_TIMER_X = "timer_x"
+CONF_TIMER_Y = "timer_y"
 
 DEFAULT_LANDMARK_X = 935
 DEFAULT_LANDMARK_Y = 633
 DEFAULT_GLASS_BOX = "930,395,980,440"
+DEFAULT_TIMER_X = 975
+DEFAULT_TIMER_Y = 547
 
 ZONES = ("rear_left", "rear_right", "front_left", "front_right")
 
@@ -123,5 +127,8 @@ def shift_options(options: dict[str, Any], dx: int, dy: int) -> dict[str, Any]:
     ly = int(new_opts.get(CONF_LANDMARK_Y, DEFAULT_LANDMARK_Y))
     new_opts[CONF_LANDMARK_X] = lx + dx
     new_opts[CONF_LANDMARK_Y] = ly + dy
+
+    new_opts[CONF_TIMER_X] = int(new_opts.get(CONF_TIMER_X, DEFAULT_TIMER_X)) + dx
+    new_opts[CONF_TIMER_Y] = int(new_opts.get(CONF_TIMER_Y, DEFAULT_TIMER_Y)) + dy
 
     return new_opts
