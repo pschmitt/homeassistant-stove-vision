@@ -11,7 +11,13 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from . import StoveVisionConfigEntry
 from .const import LEVELS, ZONES
 from .coordinator import StoveVisionCoordinator
-from .decoder import STATE_OBSTRUCTED, STATE_OFF, STATE_RESIDUAL_HEAT, STATE_UNKNOWN
+from .decoder import (
+    STATE_MISALIGNED,
+    STATE_OBSTRUCTED,
+    STATE_OFF,
+    STATE_RESIDUAL_HEAT,
+    STATE_UNKNOWN,
+)
 from .entity import StoveVisionEntity
 
 OPTIONS = [
@@ -21,6 +27,7 @@ OPTIONS = [
     STATE_RESIDUAL_HEAT,
     STATE_OBSTRUCTED,
     STATE_UNKNOWN,
+    STATE_MISALIGNED,
 ]
 
 
@@ -81,6 +88,7 @@ class ZoneSensor(StoveVisionEntity, SensorEntity):
             "raw_state": zone.raw.state,
             "raw_segments": "".join(map(str, zone.raw.segments)) if zone.raw.segments else None,
             "lit_pixels": zone.raw.lit_pixels,
+            "alignment_offset": zone.raw.alignment_offset,
         }
 
 

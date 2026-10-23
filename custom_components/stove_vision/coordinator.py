@@ -219,6 +219,7 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
         self.stove_image: bytes | None = None
         self.image_time: datetime | None = None
         self.frame_size: tuple[int, int] | None = None
+        self.alignment_error: str | None = None
 
     def _decode(
         self, frame: bytes
@@ -234,12 +235,15 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
             int(self.config.get("calibration_height", 1920 if self.rotation % 180 else 1080)),
         )
         if img.size != expected:
+            self.alignment_error = "frame_resolution_changed"
             raise ValueError(
                 f"Frame is {img.width}x{img.height}; calibration expects {expected[0]}x{expected[1]}. "
                 "Use a full resolution source or recalibrate for this resolution."
             )
         if any(not (9 <= z.x < img.width - 9 and 11 <= z.y < img.height - 11) for z in self.zones):
+            self.alignment_error = "window_outside_frame"
             raise ValueError("Digit calibration extends outside the camera frame")
+        self.alignment_error = None
         infrared = is_infrared(img)
         timer_x = int(self.config.get(CONF_TIMER_X, DEFAULT_TIMER_X))
         timer_y = int(self.config.get(CONF_TIMER_Y, DEFAULT_TIMER_Y))

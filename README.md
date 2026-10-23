@@ -162,6 +162,19 @@ failures eventually make the entities unavailable rather than reporting off.
 | Zone rings | KM 6203 | `cx,cy,rx,ry` ellipse of each zone's printed ring; dual zones: two, separated by `;` |
 | Bare glass reference | KM 6203 | `x0,y0,x1,y1` of a patch of empty glass between the zones |
 
+## Alignment warnings
+
+`binary_sensor.<name>_calibration_problem` flags compact LED strokes extending
+outside a digit's sampling window, invalid window coordinates, and changed
+frame resolution. Its attributes list affected zones and suggested pixel
+offsets. The zone reports `misaligned` immediately, bypassing smoothing; the
+stove's on/hot/danger sensors do not report a reassuring off state when a
+misaligned zone cannot be read. All card variants show **Calibration needed**.
+Open **⌖** to preview Auto-align or correct the placements manually.
+
+This checks visible LED evidence. A dark display or a large obstruction does
+not provide enough information to prove that its window is aligned.
+
 ## How it reads the display
 
 The LEDs clip the camera sensor: segment cores come out white, only their

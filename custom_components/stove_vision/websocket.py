@@ -9,7 +9,7 @@ from uuid import uuid4
 
 import voluptuous as vol
 from homeassistant.components import websocket_api
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
 from .calibration import find_drift, refine_digit_positions, shift_options
@@ -97,7 +97,12 @@ def async_register(hass: HomeAssistant) -> None:
                 if is_infrared(image):
                     raise ValueError("Use a colour camera frame for calibration")
                 if entry.entry_id not in snapshots:
-                    entry.async_on_unload(lambda: snapshots.pop(entry.entry_id, None))
+
+                    @callback
+                    def _clear_snapshot() -> None:
+                        snapshots.pop(entry.entry_id, None)
+
+                    entry.async_on_unload(_clear_snapshot)
                 snapshot = snapshots[entry.entry_id] = {
                     "image": image,
                     "frame_id": uuid4().hex,

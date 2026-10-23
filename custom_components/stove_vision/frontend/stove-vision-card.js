@@ -186,7 +186,7 @@ class StoveVisionCard extends HTMLElement {
         occupied: find(`${zone}_occupied`),
       };
     }
-    for (const key of ["on", "hot", "danger", "infrared", "refresh"]) {
+    for (const key of ["on", "hot", "danger", "infrared", "refresh", "calibration_problem"]) {
       result[key] = find(key);
     }
     result.timer = find("timer_remaining");
@@ -239,6 +239,7 @@ class StoveVisionCard extends HTMLElement {
       images,
       timer,
       infrared: infrared ? infrared.state === "on" : false,
+      calibrationProblem: this._state(ids.calibration_problem)?.state === "on",
       danger: danger ? danger.state === "on" : false,
       // Zones heating with nothing (seen) on them; shown at once, unlike the
       // alert and the mi-casa card which wait 5 minutes
@@ -269,7 +270,8 @@ class StoveVisionCard extends HTMLElement {
     const known = zones.some(([, zone]) => zone.state !== "unavailable" && zone.state !== "unknown");
 
     const chips = [];
-    if (model.infrared) chips.push(`<span class="chip ir">🌙 Night vision</span>`);
+    if (model.calibrationProblem) chips.push(`<span class="chip ir">⚠ Calibration needed</span>`);
+    else if (model.infrared) chips.push(`<span class="chip ir">🌙 Night vision</span>`);
     else if (!known) chips.push(`<span class="chip">No reading</span>`);
     else if (on.length) chips.push(`<span class="chip on">🔥 ${on.length} zone${on.length > 1 ? "s" : ""} on</span>`);
     else chips.push(`<span class="chip off">Off</span>`);
@@ -329,7 +331,8 @@ class StoveVisionCard extends HTMLElement {
   _renderCompact(model, { on, hot, pots, known }) {
     let status;
     let tone = "off";
-    if (model.infrared) [status, tone] = ["Night vision, can't see", "ir"];
+    if (model.calibrationProblem) [status, tone] = ["Calibration needed", "ir"];
+    else if (model.infrared) [status, tone] = ["Night vision, can't see", "ir"];
     else if (!known) status = "No reading";
     else if (model.dangerZones.length) [status, tone] = ["Heating, nothing on it", "danger"];
     else if (on.length) [status, tone] = [`${on.length} zone${on.length > 1 ? "s" : ""} on`, "on"];
@@ -409,7 +412,8 @@ class StoveVisionCard extends HTMLElement {
     const short = { rear_left: "RL", rear_right: "RR", front_left: "FL", front_right: "FR" };
     let secondary;
     let tone = "off";
-    if (model.infrared) [secondary, tone] = ["Night vision, can't see", "ir"];
+    if (model.calibrationProblem) [secondary, tone] = ["Calibration needed", "ir"];
+    else if (model.infrared) [secondary, tone] = ["Night vision, can't see", "ir"];
     else if (!known) secondary = "No reading";
     else if (on.length) {
       // Zones heating without a pot first, marked as such

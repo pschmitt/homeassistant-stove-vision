@@ -172,3 +172,24 @@ def test_edge_symbol_anti_aliased_at_boundary_not_residual_heat() -> None:
         for x in (956, 957, 958):
             image.putpixel((x, y), (b, b, b))
     assert decoder.read_zone(image, decoder.Zone("rear_left", 957, 581)).state == "off"
+
+
+def test_clipped_four_is_misaligned_instead_of_another_digit() -> None:
+    """A valid-looking partial glyph must not become a trusted three/one."""
+    img = decoder.load_frame((FIXTURES / "levels_1_2_3_4.png").read_bytes())
+    correct = ZONES[-1]
+    assert decoder.read_zone(img, correct).state == "4"
+    wrong = decoder.Zone(correct.key, correct.x + 8, correct.y)
+    reading = decoder.read_zone(img, wrong)
+    assert reading.state == "misaligned"
+    assert reading.alignment_offset is not None
+    assert reading.alignment_offset[0] < 0
+
+
+def test_misalignment_bypasses_previous_votes() -> None:
+    readings = [
+        decoder.ZoneReading("3"),
+        decoder.ZoneReading("3"),
+        decoder.ZoneReading("misaligned"),
+    ]
+    assert decoder.smooth(readings).state == "misaligned"

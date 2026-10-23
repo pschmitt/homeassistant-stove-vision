@@ -57,10 +57,11 @@ SEGMENT_REGIONS = (
 
 STATE_OFF = "off"
 STATE_UNKNOWN = "unknown"
+STATE_MISALIGNED = "misaligned"
 STATE_OBSTRUCTED = "obstructed"
 STATE_RESIDUAL_HEAT = "residual_heat"
 # Readings that carry no information about the zone; ignored when smoothing
-NO_INFO = {STATE_UNKNOWN, STATE_OBSTRUCTED}
+NO_INFO = {STATE_UNKNOWN, STATE_OBSTRUCTED, STATE_MISALIGNED}
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,6 +98,7 @@ class ZoneReading:
     lit_pixels: int = 0
     bright_pixels: int = 0
     heat_bars: int | None = None
+    alignment_offset: tuple[int, int] | None = None
 
 
 def is_tinted(r: int, g: int, b: int, tint: int = 25) -> bool:
@@ -203,9 +205,45 @@ def _contrast_bars(px, w: int, h: int, s: DecoderSettings) -> int | None:
     return bars
 
 
+def alignment_offset(
+    img: Image.Image, zone: Zone, settings: DecoderSettings
+) -> tuple[int, int] | None:
+    """Detect a compact LED glyph extending beyond its calibrated window.
+
+    Looking outside the window is essential: a clipped four can be a valid
+    three or one inside it. Ignore large/ambiguous coloured objects and allow
+    a little stray bloom; darkness alone cannot diagnose camera alignment.
+    """
+    px = img.load()
+    points = []
+    for y in range(
+        max(0, zone.y - settings.half_h - 4), min(img.height, zone.y + settings.half_h + 5)
+    ):
+        for x in range(
+            max(0, zone.x - settings.half_w - 10), min(img.width, zone.x + settings.half_w + 11)
+        ):
+            if is_tinted(*px[x, y][:3], settings.weak_tint):
+                points.append((x, y))
+    if len(points) < settings.min_lit:
+        return None
+    x0, x1 = min(x for x, _ in points), max(x for x, _ in points)
+    y0, y1 = min(y for _, y in points), max(y for _, y in points)
+    if x1 - x0 > 14 or y1 - y0 > 13:
+        return None
+    outside = sum(
+        abs(x - zone.x) > settings.half_w or abs(y - zone.y) > settings.half_h for x, y in points
+    )
+    if outside < max(2, len(points) * 0.15):
+        return None
+    return (x0 + x1) // 2 - zone.x, (y0 + y1) // 2 - zone.y
+
+
 def read_zone(img: Image.Image, zone: Zone, settings: DecoderSettings | None = None) -> ZoneReading:
     """Read a single zone display around its configured centre."""
     s = settings or DecoderSettings()
+    offset = alignment_offset(img, zone, s)
+    if offset is not None:
+        return ZoneReading(STATE_MISALIGNED, alignment_offset=offset)
     crop = img.crop(
         (
             zone.x - s.half_w,
@@ -375,6 +413,8 @@ def smooth(history: Sequence[ZoneReading]) -> ZoneReading:
     otherwise the most common lit reading wins, ties to the most recent.
     Readings without information (covered, unreadable) don't vote.
     """
+    if history[-1].state == STATE_MISALIGNED:
+        return history[-1]
     informative = [r for r in history if r.state not in NO_INFO]
     if not informative:
         return history[-1]

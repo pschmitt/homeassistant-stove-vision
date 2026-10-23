@@ -18,7 +18,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from . import StoveVisionConfigEntry
 from .const import ZONES
 from .coordinator import StoveVisionCoordinator, ZoneState
-from .decoder import STATE_RESIDUAL_HEAT
+from .decoder import STATE_MISALIGNED, STATE_RESIDUAL_HEAT
 from .entity import StoveVisionEntity
 
 
@@ -58,6 +58,7 @@ async def async_setup_entry(
             *(ZoneOccupancySensor(coordinator, zone) for zone in ZONES),
             DangerSensor(coordinator),
             InfraredSensor(coordinator),
+            CalibrationProblemSensor(coordinator),
         ]
     )
 
@@ -90,7 +91,11 @@ class StoveBinarySensor(StoveVisionEntity, BinarySensorEntity):
         """Any zone matches."""
         if self.coordinator.data is None or self.coordinator.data.infrared:
             return None
-        return bool(self._matching())
+        if self._matching():
+            return True
+        if any(zone.state == STATE_MISALIGNED for zone in self.coordinator.data.zones.values()):
+            return None
+        return False
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -190,7 +195,11 @@ class DangerSensor(StoveVisionEntity, BinarySensorEntity):
         """Any heating zone without a pot."""
         if self.coordinator.data is None or self.coordinator.data.infrared:
             return None
-        return bool(self._zones())
+        if self._zones():
+            return True
+        if any(zone.state == STATE_MISALIGNED for zone in self.coordinator.data.zones.values()):
+            return None
+        return False
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -201,4 +210,42 @@ class DangerSensor(StoveVisionEntity, BinarySensorEntity):
             "zones": list(zones),
             "reasons": zones,
             "levels": {key: data.zones[key].level for key in zones} if data else {},
+        }
+
+
+class CalibrationProblemSensor(StoveVisionEntity, BinarySensorEntity):
+    """A digit is clipped by its window or the frame resolution changed."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_translation_key = "calibration_problem"
+
+    def __init__(self, coordinator: StoveVisionCoordinator) -> None:
+        super().__init__(coordinator, "calibration_problem")
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def is_on(self) -> bool | None:
+        if self.coordinator.alignment_error:
+            return True
+        if self.coordinator.data is None:
+            return None
+        return any(z.raw.state == STATE_MISALIGNED for z in self.coordinator.data.zones.values())
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data
+        return {
+            "reason": self.coordinator.alignment_error,
+            "zones": [k for k, z in data.zones.items() if z.raw.state == STATE_MISALIGNED]
+            if data
+            else [],
+            "offsets": {
+                k: z.raw.alignment_offset for k, z in data.zones.items() if z.raw.alignment_offset
+            }
+            if data
+            else {},
         }

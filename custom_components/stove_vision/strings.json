@@ -89,7 +89,8 @@
           "9": "9",
           "residual_heat": "Residual heat",
           "obstructed": "Obstructed",
-          "unknown": "Unknown"
+          "unknown": "Unknown",
+          "misaligned": "Misaligned"
         }
       },
       "rear_right": {
@@ -108,7 +109,8 @@
           "9": "9",
           "residual_heat": "Residual heat",
           "obstructed": "Obstructed",
-          "unknown": "Unknown"
+          "unknown": "Unknown",
+          "misaligned": "Misaligned"
         }
       },
       "front_left": {
@@ -127,7 +129,8 @@
           "9": "9",
           "residual_heat": "Residual heat",
           "obstructed": "Obstructed",
-          "unknown": "Unknown"
+          "unknown": "Unknown",
+          "misaligned": "Misaligned"
         }
       },
       "front_right": {
@@ -146,7 +149,8 @@
           "9": "9",
           "residual_heat": "Residual heat",
           "obstructed": "Obstructed",
-          "unknown": "Unknown"
+          "unknown": "Unknown",
+          "misaligned": "Misaligned"
         }
       }
     },
@@ -174,6 +178,9 @@
       },
       "danger": {
         "name": "Danger"
+      },
+      "calibration_problem": {
+        "name": "Calibration problem"
       }
     },
     "image": {
