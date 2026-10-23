@@ -17,7 +17,7 @@ CONF_TIMER_Y = "timer_y"
 
 DEFAULT_LANDMARK_X = 935
 DEFAULT_LANDMARK_Y = 633
-DEFAULT_GLASS_BOX = "930,395,980,440"
+DEFAULT_GLASS_BOX = "939,404,989,449"
 DEFAULT_TIMER_X = 975
 DEFAULT_TIMER_Y = 547
 
@@ -133,3 +133,31 @@ def shift_options(options: dict[str, Any], dx: int, dy: int) -> dict[str, Any]:
     new_opts[CONF_TIMER_Y] = int(new_opts.get(CONF_TIMER_Y, DEFAULT_TIMER_Y)) + dy
 
     return new_opts
+
+
+def refine_digit_positions(img: Image.Image, options: dict[str, Any]) -> dict[str, Any]:
+    """Center lit zone windows on complete digits, independently of camera drift.
+
+    A landmark can align the panel while an individual digit's old position is
+    wrong. Only move windows with compact, clearly coloured LED evidence; dark
+    displays and ambiguous reflections leave their calibration untouched.
+    """
+    updated = dict(options)
+    px = img.convert("RGB").load()
+    for zone in ZONES:
+        key = f"{CONF_ZONE_PREFIX}{zone}"
+        cx, cy = (int(v) for v in updated.get(key, DEFAULT_ZONE_POSITIONS[zone]).split(","))
+        points = []
+        for y in range(max(0, cy - 13), min(img.height, cy + 14)):
+            for x in range(max(0, cx - 20), min(img.width, cx + 21)):
+                r, g, b = px[x, y][:3]
+                if r > 130 and b > 110 and r - g > 15 and b - g > 10:
+                    points.append((x, y))
+        if len(points) < 4:
+            continue
+        x0, x1 = min(x for x, _ in points), max(x for x, _ in points)
+        y0, y1 = min(y for _, y in points), max(y for _, y in points)
+        if x1 - x0 > 14 or y1 - y0 > 13:
+            continue
+        updated[key] = f"{(x0 + x1) // 2},{(y0 + y1) // 2}"
+    return updated

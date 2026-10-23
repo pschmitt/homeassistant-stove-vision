@@ -13,7 +13,8 @@
     "frontend",
     "http",
     "image",
-    "lovelace"
+    "lovelace",
+    "websocket_api"
   ],
   "documentation": "https://github.com/pschmitt/homeassistant-stove-vision",
   "integration_type": "device",
@@ -22,5 +23,5 @@
   "loggers": [
     "custom_components.stove_vision"
   ],
-  "version": "0.3.0"
+  "version": "0.4.0"
 }

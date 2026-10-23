@@ -203,7 +203,9 @@ class StoveVisionOptionsFlow(OptionsFlow):
         if user_input is not None:
             errors = await _async_validate(self.hass, user_input)
             if not errors:
-                return self.async_create_entry(data=_normalize(user_input))
+                return self.async_create_entry(
+                    data={**self.config_entry.options, **_normalize(user_input)}
+                )
         defaults = user_input or dict(self.config_entry.options)
         schema = {**_source_schema(defaults), **_tuning_schema(defaults)}
         return self.async_show_form(step_id="init", data_schema=vol.Schema(schema), errors=errors)

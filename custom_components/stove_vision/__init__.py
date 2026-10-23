@@ -20,6 +20,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import StoveVisionCoordinator
+from .websocket import async_register
 
 type StoveVisionConfigEntry = ConfigEntry[StoveVisionCoordinator]
 
@@ -34,12 +35,22 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Serve the Lovelace card and register it as a dashboard resource."""
+    async_register(hass)
     await hass.http.async_register_static_paths(
-        [StaticPathConfig(CARD_URL, str(CARD_PATH), cache_headers=False)]
+        [
+            StaticPathConfig(CARD_URL, str(CARD_PATH), cache_headers=False),
+            StaticPathConfig(
+                f"/{DOMAIN}/calibration-card.js",
+                str(CARD_PATH.with_name("calibration-card.js")),
+                cache_headers=False,
+            ),
+        ]
     )
     # Content hash in the URL so browsers pick up a changed card
     digest = await hass.async_add_executor_job(
-        lambda: hashlib.sha256(CARD_PATH.read_bytes()).hexdigest()[:10]
+        lambda: hashlib.sha256(
+            CARD_PATH.read_bytes() + CARD_PATH.with_name("calibration-card.js").read_bytes()
+        ).hexdigest()[:10]
     )
     await _async_register_card(hass, f"{CARD_URL}?v={digest}")
     return True

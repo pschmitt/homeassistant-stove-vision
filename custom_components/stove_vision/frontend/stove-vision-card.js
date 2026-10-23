@@ -1,3 +1,4 @@
+import "./calibration-card.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /*
  * Stove Vision card: the stove drawn from the integration's sensors.
@@ -302,6 +303,7 @@ class StoveVisionCard extends HTMLElement {
            <div class="chips">${this._config.show_chips ? chips.join("") : ""}</div>
            ${this._refreshButton(model)}
            ${cameraButton}
+           ${this._hass.user?.is_admin ? '<button class="toggle" data-action="calibrate" title="Calibrate positions" aria-label="Calibrate positions">⌖</button>' : ""}
          </div>`
       : "";
 
@@ -681,6 +683,21 @@ class StoveVisionCard extends HTMLElement {
   }
 
   _onClick(event) {
+    if (event.target.closest("[data-action=calibrate]")) {
+      event.stopPropagation();
+      const dialog = document.createElement("dialog");
+      dialog.style.cssText = "width:min(900px,94vw);max-height:90vh;overflow:auto;background:var(--card-background-color,#222);color:var(--primary-text-color,#eee);border:1px solid #888;border-radius:12px;padding:12px";
+      const close = document.createElement("button");
+      close.textContent = "Close"; close.onclick = () => dialog.close();
+      const card = document.createElement("stove-vision-calibration-card");
+      const device = this._hass.devices?.[this._entities().device];
+      const entryId = device?.config_entries?.[0];
+      card.setConfig({ entry_id: entryId });
+      dialog.append(close, card); document.body.append(dialog);
+      dialog.onclose = () => dialog.remove(); dialog.showModal(); card.hass = this._hass;
+      return;
+    }
+
     const refresh = event.target.closest("[data-action=refresh]");
     if (refresh) {
       event.stopPropagation();

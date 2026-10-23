@@ -128,7 +128,25 @@ All options are in the card editor as well.
 4. Calibrate in the options: turn all zones on at different levels, open
    the *Panel* image and move each zone and timer digit window onto its digit;
    then look at the *Zones* image and fit the rings and the bare glass reference.
-   The **Calibrate** button shifts these positions together when the camera moves.
+   The **Calibrate** button matches the panel landmark, then recenters each
+   clearly visible lit digit independently. Dark or ambiguous digits keep their
+   previous positions. Calibrate with the displays lit for best results.
+
+### Visual calibration
+
+As an administrator, tap **⌖** in the full Stove Vision card's header. You can
+also add `type: custom:stove-vision-calibration-card` from the card picker.
+Choose a target and tap its center in the frozen camera image, or enter exact
+X/Y coordinates. Digit targets are zoomed in. Ring targets also expose their
+radii; the glass reference has two corner targets. **Auto-align** previews the
+landmark and digit corrections. **Preview readings** decodes that same frame;
+**Save positions** applies them and reloads the integration. Refresh the frame
+after saving before making another change.
+
+Calibration records the frame resolution. Polling rejects snapshots with a
+different resolution instead of reading outside the calibrated image (for
+example, a 640×360 fallback snapshot when calibration used 1920×1080). Such
+failures eventually make the entities unavailable rather than reporting off.
 
 ### Options
 

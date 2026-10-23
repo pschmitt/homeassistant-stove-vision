@@ -11,7 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import StoveVisionConfigEntry
-from .calibration import find_drift, shift_options
+from .calibration import find_drift, refine_digit_positions, shift_options
 from .const import CONF_LANDMARK_X, CONF_LANDMARK_Y, DEFAULT_LANDMARK_X, DEFAULT_LANDMARK_Y
 from .coordinator import StoveVisionCoordinator, async_fetch_frame
 from .decoder import load_frame
@@ -74,7 +74,7 @@ class CalibrateButton(StoveVisionEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Locate landmark, calculate camera drift, and update options."""
         frame = await async_fetch_frame(self.hass, self.coordinator.config)
-        img = load_frame(frame, self.coordinator.rotation)
+        img = await self.hass.async_add_executor_job(load_frame, frame, self.coordinator.rotation)
 
         lx = int(self.coordinator.config.get(CONF_LANDMARK_X, DEFAULT_LANDMARK_X))
         ly = int(self.coordinator.config.get(CONF_LANDMARK_Y, DEFAULT_LANDMARK_Y))
@@ -92,10 +92,13 @@ class CalibrateButton(StoveVisionEntity, ButtonEntity):
             dy,
             ncc,
         )
-        if dx == 0 and dy == 0:
+        new_options = shift_options(self.coordinator.config, dx, dy)
+        new_options = await self.hass.async_add_executor_job(
+            refine_digit_positions, img, new_options
+        )
+        new_options["calibration_width"], new_options["calibration_height"] = img.size
+        if new_options == dict(self.coordinator.config_entry.options):
             return
-
-        new_options = shift_options(self.coordinator.config_entry.options, dx, dy)
         self.hass.config_entries.async_update_entry(
             self.coordinator.config_entry,
             options=new_options,
