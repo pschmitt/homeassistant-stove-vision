@@ -15,7 +15,7 @@ from homeassistant.exceptions import HomeAssistantError
 from .calibration import find_drift, refine_digit_positions, shift_options
 from .const import DEFAULT_GLASS_BOX, DEFAULT_ZONE_POSITIONS, DEFAULT_ZONE_RINGS, DOMAIN
 from .coordinator import async_fetch_frame, parse_ints, parse_position, parse_rings
-from .decoder import Zone, is_infrared, load_frame, read_frame
+from .decoder import Zone, is_infrared, load_frame, read_frame, read_timer_digits
 
 
 def _positions(config: dict) -> dict:
@@ -141,7 +141,7 @@ def async_register(hass: HomeAssistant) -> None:
                     shift_options(_positions(coordinator.config), drift[0], drift[1])
                 )
                 positions = await hass.async_add_executor_job(
-                    refine_digit_positions, image, positions
+                    refine_digit_positions, image, positions, read_timer_digits
                 )
                 snapshot["landmark"] = (lx + drift[0], ly + drift[1])
             _validate(positions, image.size)
@@ -166,6 +166,9 @@ def async_register(hass: HomeAssistant) -> None:
                     "positions": positions,
                     "readings": {k: r.state for k, r in readings.items()},
                     "saved": msg["action"] == "save",
+                    "timer_digits": read_timer_digits(
+                        image, positions["timer_x"], positions["timer_y"]
+                    ),
                 },
             )
         except (ValueError, TypeError, KeyError, HomeAssistantError, OSError, TimeoutError):

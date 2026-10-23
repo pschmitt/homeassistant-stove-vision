@@ -129,7 +129,7 @@ All options are in the card editor as well.
    the *Panel* image and move each zone and timer digit window onto its digit;
    then look at the *Zones* image and fit the rings and the bare glass reference.
    The **Calibrate** button matches the panel landmark, then recenters each
-   clearly visible lit digit independently. Dark or ambiguous digits keep their
+   clearly visible lit zone digit and the two-digit timer independently. Dark or ambiguous digits keep their
    previous positions. Calibrate with the displays lit for best results.
 
 ### Visual calibration
@@ -165,9 +165,9 @@ failures eventually make the entities unavailable rather than reporting off.
 ## Alignment warnings
 
 `binary_sensor.<name>_calibration_problem` flags compact LED strokes extending
-outside a digit's sampling window, invalid window coordinates, and changed
+outside a digit's sampling window, a visibly displaced timer, invalid window coordinates, and changed
 frame resolution. Its attributes list affected zones and suggested pixel
-offsets. The zone reports `misaligned` immediately, bypassing smoothing; the
+offsets (including `timer_offset`). The zone reports `misaligned` immediately, bypassing smoothing; the
 stove's on/hot/danger sensors do not report a reassuring off state when a
 misaligned zone cannot be read. All card variants show **Calibration needed**.
 Open **⌖** to preview Auto-align or correct the placements manually.

@@ -79,3 +79,23 @@ def test_find_drift_unreadable() -> None:
     # Blank image has no landmark
     img = Image.new("RGB", (1920, 1080), (30, 30, 30))
     assert calibration.find_drift(img, base_x=935, base_y=633) is None
+
+
+def test_timer_alignment_uses_both_digits_and_validates_decoding() -> None:
+    spec = importlib.util.spec_from_file_location("calibration_test_decoder", _DIR / "decoder.py")
+    decoder = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = decoder
+    spec.loader.exec_module(decoder)
+    img = Image.new("RGB", (1920, 1080))
+    fixture = Path(__file__).parent / "fixtures" / "timer_05.png"
+    img.paste(Image.open(fixture), (960, 535))
+    options = {"timer_x": 975, "timer_y": 539}
+    corrected = calibration.refine_timer_position(img, options, decoder.read_timer_digits)
+    assert decoder.read_timer_digits(img, corrected["timer_x"], corrected["timer_y"]) == ("0", "5")
+    assert corrected["timer_y"] != options["timer_y"]
+    assert (
+        calibration.timer_position(
+            Image.new("RGB", (1920, 1080)), options, decoder.read_timer_digits
+        )
+        is None
+    )

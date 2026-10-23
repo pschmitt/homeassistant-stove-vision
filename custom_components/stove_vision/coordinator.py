@@ -16,6 +16,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
+from .calibration import timer_position
 from .const import (
     CONF_CAMERA_ENTITY,
     CONF_CAMERA_STREAM,
@@ -220,6 +221,7 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
         self.image_time: datetime | None = None
         self.frame_size: tuple[int, int] | None = None
         self.alignment_error: str | None = None
+        self.timer_alignment_offset: tuple[int, int] | None = None
 
     def _decode(
         self, frame: bytes
@@ -247,8 +249,16 @@ class StoveVisionCoordinator(DataUpdateCoordinator[StoveData]):
         infrared = is_infrared(img)
         timer_x = int(self.config.get(CONF_TIMER_X, DEFAULT_TIMER_X))
         timer_y = int(self.config.get(CONF_TIMER_Y, DEFAULT_TIMER_Y))
+        position = None if infrared else timer_position(img, self.config, read_timer_digits)
+        self.timer_alignment_offset = None
+        if position and max(abs(position[0] - timer_x), abs(position[1] - timer_y)) >= 3:
+            self.timer_alignment_offset = position[0] - timer_x, position[1] - timer_y
+            self._timer_history.clear()
+            self._timer_minutes = None
         self._timer_history.append(
-            (None, None) if infrared else read_timer_digits(img, timer_x, timer_y)
+            (None, None)
+            if infrared or self.timer_alignment_offset
+            else read_timer_digits(img, timer_x, timer_y)
         )
         digits = []
         for index in (0, 1):

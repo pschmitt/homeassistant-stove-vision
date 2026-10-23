@@ -76,7 +76,8 @@ class StoveVisionCalibrationCard extends HTMLElement {
       this._positions = result.positions;
       this._fields(); this._draw();
       this._status((result.saved ? "Saved. Integration is reloading.\n" : "Preview: ") +
-        Object.entries(result.readings).map(([key, value]) => `${key.replaceAll("_", " ")}: ${value}`).join(" · "));
+        Object.entries(result.readings).map(([key, value]) => `${key.replaceAll("_", " ")}: ${value}`).join(" · ") +
+        (result.timer_digits ? ` · Timer: ${result.timer_digits.map(d => d ?? "_").join("")}` : ""));
       if (result.saved) this._frame = null;
     }));
     await this._run(async () => {

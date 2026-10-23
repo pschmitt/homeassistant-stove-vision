@@ -14,7 +14,7 @@ from . import StoveVisionConfigEntry
 from .calibration import find_drift, refine_digit_positions, shift_options
 from .const import CONF_LANDMARK_X, CONF_LANDMARK_Y, DEFAULT_LANDMARK_X, DEFAULT_LANDMARK_Y
 from .coordinator import StoveVisionCoordinator, async_fetch_frame
-from .decoder import load_frame
+from .decoder import load_frame, read_timer_digits
 from .entity import StoveVisionEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -94,7 +94,7 @@ class CalibrateButton(StoveVisionEntity, ButtonEntity):
         )
         new_options = shift_options(self.coordinator.config, dx, dy)
         new_options = await self.hass.async_add_executor_job(
-            refine_digit_positions, img, new_options
+            refine_digit_positions, img, new_options, read_timer_digits
         )
         new_options["calibration_width"], new_options["calibration_height"] = img.size
         if new_options == dict(self.coordinator.config_entry.options):

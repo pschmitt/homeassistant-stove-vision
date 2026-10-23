@@ -135,7 +135,9 @@ def shift_options(options: dict[str, Any], dx: int, dy: int) -> dict[str, Any]:
     return new_opts
 
 
-def refine_digit_positions(img: Image.Image, options: dict[str, Any]) -> dict[str, Any]:
+def refine_digit_positions(
+    img: Image.Image, options: dict[str, Any], timer_reader=None
+) -> dict[str, Any]:
     """Center lit zone windows on complete digits, independently of camera drift.
 
     A landmark can align the panel while an individual digit's old position is
@@ -160,4 +162,43 @@ def refine_digit_positions(img: Image.Image, options: dict[str, Any]) -> dict[st
         if x1 - x0 > 14 or y1 - y0 > 13:
             continue
         updated[key] = f"{(x0 + x1) // 2},{(y0 + y1) // 2}"
+    return refine_timer_position(img, updated, timer_reader)
+
+
+def timer_position(
+    img: Image.Image, options: dict[str, Any], reader=None
+) -> tuple[int, int] | None:
+    """Locate a complete coloured two-digit timer, independently of zone digits."""
+    cx = int(options.get(CONF_TIMER_X, DEFAULT_TIMER_X))
+    cy = int(options.get(CONF_TIMER_Y, DEFAULT_TIMER_Y))
+    px = img.convert("RGB").load()
+    points = []
+    for y in range(max(0, cy - 16), min(img.height, cy + 18)):
+        for x in range(max(0, cx - 15), min(img.width, cx + 28)):
+            r, g, b = px[x, y][:3]
+            if r > 130 and b > 110 and r - g > 15 and b - g > 10:
+                points.append((x, y))
+    if len(points) < 10:
+        return None
+    x0, x1 = min(x for x, _ in points), max(x for x, _ in points)
+    y0, y1 = min(y for _, y in points), max(y for _, y in points)
+    if not (17 <= x1 - x0 <= 29 and 7 <= y1 - y0 <= 20):
+        return None
+    # The sampling anchor is one pixel right of each glyph's geometric
+    # center; the second glyph is twelve pixels to its right.
+    fit_x, fit_y = (x0 + x1) // 2 - 5, (y0 + y1) // 2
+    if reader is None:
+        return fit_x, fit_y
+    for dy in (0, -1, 1, -2, 2):
+        for dx in (0, -1, 1):
+            if all(digit is not None for digit in reader(img, fit_x + dx, fit_y + dy)):
+                return fit_x + dx, fit_y + dy
+    return None
+
+
+def refine_timer_position(img: Image.Image, options: dict[str, Any], reader=None) -> dict[str, Any]:
+    """Recenter the timer when both digits provide enough visible evidence."""
+    updated = dict(options)
+    if position := timer_position(img, options, reader):
+        updated[CONF_TIMER_X], updated[CONF_TIMER_Y] = position
     return updated

@@ -229,7 +229,7 @@ class CalibrationProblemSensor(StoveVisionEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        if self.coordinator.alignment_error:
+        if self.coordinator.alignment_error or self.coordinator.timer_alignment_offset:
             return True
         if self.coordinator.data is None:
             return None
@@ -240,6 +240,7 @@ class CalibrationProblemSensor(StoveVisionEntity, BinarySensorEntity):
         data = self.coordinator.data
         return {
             "reason": self.coordinator.alignment_error,
+            "timer_offset": self.coordinator.timer_alignment_offset,
             "zones": [k for k, z in data.zones.items() if z.raw.state == STATE_MISALIGNED]
             if data
             else [],
