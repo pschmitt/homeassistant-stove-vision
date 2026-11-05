@@ -1,5 +1,7 @@
 # Stove Vision
 
+[![Open this integration in Home Assistant Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=pschmitt&repository=homeassistant-stove-vision&category=integration)
+
 Home Assistant integration that reads a stove from a camera pointed at it:
 the zone displays (power level, residual heat), whether something sits on
 each zone, and whether a zone is heating with nothing on it. No smart stove,
@@ -108,6 +110,14 @@ and "without pot" on the tile.
 | `hold_action` | none | Long press, like native cards: `navigate` (`navigation_path`), `more-info` (`entity`), `url` (`url_path`), `none` |
 
 All options are in the card editor as well.
+
+## Installation
+
+Use the badge above to add this repository as a custom integration in Home
+Assistant Marketplace (Home Assistant 2026.11 or later), then install Stove
+Vision. On older versions, add it as a custom repository under **HACS →
+Integrations → ⋮ → Custom repositories** with category **Integration**.
+Restart Home Assistant, then follow the setup below.
 
 ## Setup
 
